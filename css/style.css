@@ -109,19 +109,95 @@ h1,h2,h3,h4,p{margin:0}
 .sec-sub{margin-top:8px;padding-inline-start:20px;color:var(--muted);font-size:14.5px}
 .sec-head{margin-bottom:30px}
 
-/* ---------- بطاقات الأشخاص (الإدارة + الهيئة التعليمية) ---------- */
-.leaders{display:grid;gap:24px}
-@media(min-width:820px){.leaders{grid-template-columns:repeat(3,1fr)}}
-.person{position:relative;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-sm);transition:transform .3s,box-shadow .3s}
-.person:hover{transform:translateY(-6px);box-shadow:var(--sh-md)}
-.p-media{position:relative;aspect-ratio:4/3.1;overflow:hidden;background:#dfe7f3}
-.p-media img{width:100%;height:100%;object-fit:cover;object-position:center top}
-.p-media::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,0) 38%,rgba(255,255,255,.55) 70%,#fff 100%)}
-.p-body{position:relative;z-index:1;margin-top:-28px;padding:0 26px 28px;text-align:center}
-.role{display:inline-block;padding:5px 18px;border-radius:999px;background:var(--navy);color:#fff;font-size:12.5px;font-weight:800;box-shadow:0 6px 14px -4px rgba(13,42,84,.5)}
-.role.gold{background:linear-gradient(135deg,var(--gold),var(--gold-2));color:var(--navy)}
-.p-body h3{margin-top:12px;font-size:19px;font-weight:900;color:var(--navy)}
-.p-body p{margin-top:10px;font-size:13.5px;line-height:1.95;color:var(--muted)}
+/* ---------- بطاقات الإدارة - سطر واحد + الكلمة ظاهرة دايما ---------- */
+.leaders{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:24px;
+  align-items:start;
+  max-width:1160px;
+  margin:0 auto;
+  padding-top:24px;
+}
+.person{
+  position:relative;
+  border-radius:26px;
+  overflow:hidden;
+  background:#fff;
+  border:1px solid rgba(13,42,84,.08);
+  box-shadow:var(--sh-sm);
+  display:flex;
+  flex-direction:column;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .35s;
+}
+.person:hover{ transform:translateY(-6px); box-shadow:var(--sh-md); }
+.person.principal{
+  transform:translateY(-22px);
+  border:1.8px solid var(--gold);
+  box-shadow: 0 0 0 6px rgba(201,162,39,.14), var(--sh-lg);
+  z-index:2;
+}
+.person.principal:hover{ transform:translateY(-30px); }
+
+.p-media{
+  position:relative;
+  height:360px;
+  flex:0 0 360px;
+  overflow:hidden;
+  background:#dfe7f3;
+}
+.p-media img{ width:100%; height:100%; object-fit:cover; object-position:center top; display:block; }
+.p-media::after{
+  content:"";
+  position:absolute; inset:0;
+  background: linear-gradient(to top, #fff 6%, rgba(255,255,255,.92) 26%, rgba(255,255,255,0) 62%);
+}
+
+.p-body{
+  position:relative;
+  padding:14px 20px 22px;
+  text-align:center;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  background:#fff;
+}
+.role{
+  display:inline-block; padding:7px 14px; border-radius:999px;
+  font-size:11.5px; font-weight:900; line-height:1.2;
+  box-shadow:0 4px 14px rgba(0,0,0,.15); white-space:nowrap;
+  margin-top:-28px;
+  position:relative;
+  z-index:2;
+}
+.role.principal-role{ background:var(--navy); color:#fff; }
+.role.gold{ background:linear-gradient(135deg,#c9a227,#e8c765); color:#4a3600; }
+
+.p-body h3{
+  font-size:17px; font-weight:900; color:var(--navy); line-height:1.3;
+  margin:0;
+}
+.p-body .p-text{
+  display:block !important;
+  font-size:13.5px;
+  line-height:1.9;
+  color:var(--muted);
+  margin:6px 0 0 0;
+  text-align:center;
+}
+
+@media(max-width:1024px){
+  .leaders{ gap:16px; }
+  .p-media{ height:300px; flex-basis:300px; }
+}
+@media(max-width:900px){
+  .leaders{ grid-template-columns:1fr; max-width:420px; gap:20px; padding-top:0; }
+  .person.principal{ transform:none; }
+  .person.principal:hover{ transform:translateY(-4px); }
+  .p-media{ height:380px; flex-basis:380px; }
+}
 
 /* ---------- لوحة شرف الفائقين (معرض صور) ---------- */
 .honor{background:linear-gradient(135deg,var(--navy),#0a2147);color:#fff;padding-block:64px}
@@ -281,50 +357,3 @@ h1,h2,h3,h4,p{margin:0}
 .a-card form{text-align:start}
 .a-card .btn{width:100%;margin-top:18px}
 .err404{font-size:96px;font-weight:900;line-height:1;color:var(--gold)}
-
-/* =============================================================
-   تعديل جديد: بطاقة المدير في النص ومرفوعة - زي الهيئة التعليمية
-   ============================================================= */
-.leaders{
-  display:flex !important;
-  flex-direction:column !important;
-  align-items:center !important;
-  gap:32px !important;
-  grid-template-columns:unset !important;
-}
-.leaders-principal{
-  width:100%;
-  display:flex;
-  justify-content:center;
-  transform: translateY(-16px);
-  z-index:3;
-}
-.leaders-principal .person.principal{
-  max-width:440px;
-  width:100%;
-  border:2px solid rgba(201,162,39,.75) !important;
-  box-shadow: 0 20px 44px -14px rgba(13,42,84,.38), 0 10px 24px -10px rgba(13,42,84,.22) !important;
-  transform: scale(1.04);
-}
-.leaders-principal .person.principal .p-media{
-  aspect-ratio:4/2.9;
-}
-.leaders-principal .person.principal .role{
-  background:linear-gradient(135deg,var(--gold),var(--gold-2)) !important;
-  color:var(--navy) !important;
-  font-size:13.5px;
-  padding:6px 20px;
-}
-.leaders-vices{
-  display:grid !important;
-  gap:24px !important;
-  width:100%;
-  max-width:860px;
-  grid-template-columns:repeat(2,1fr);
-}
-@media(max-width:680px){
-  .leaders{ gap:22px !important; }
-  .leaders-principal{ transform:none; }
-  .leaders-principal .person.principal{ transform:none; max-width:100%; }
-  .leaders-vices{ grid-template-columns:1fr; max-width:440px; }
-}
