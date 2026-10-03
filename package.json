@@ -1,0 +1,9 @@
+{
+  "name": "adsani-platform",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "منصة العدساني الثانوية التعليمية — موقع HTML ثابت + دوال Vercel لرفع الملفات",
+  "engines": { "node": "22.x" },
+  "dependencies": { "@vercel/blob": "^2.0.0" }
+}
