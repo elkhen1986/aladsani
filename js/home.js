@@ -6,11 +6,19 @@
   var src = function (p) { return /^(https?:)?\/\//.test(p) ? p : R + p; };
   var fb = ' onerror="this.onerror=null;this.src=\'' + R + 'assets/img/avatar.jpg\'"';
 
-  /* كلمة الإدارة */
-  $('leaders').innerHTML = S.leaders.map(function (p, i) {
-    return '<article class="person"><div class="p-media"><img src="' + esc(src(p.photo)) + '" alt="' + esc(p.name) + '" loading="lazy"' + fb + '></div>' +
-      '<div class="p-body"><span class="role' + (i ? ' gold' : '') + '">' + esc(p.role) + '</span><h3>' + esc(p.name) + '</h3><p>' + esc(p.text) + '</p></div></article>';
-  }).join('');
+  /* كلمة الإدارة - تعديل: المدير في النص ومرفوع */
+  var renderPerson = function(p, isPrincipal){
+    return '<article class="person' + (isPrincipal ? ' principal' : ' vice') + '"><div class="p-media"><img src="' + esc(src(p.photo)) + '" alt="' + esc(p.name) + '" loading="lazy"' + fb + '></div>' +
+      '<div class="p-body"><span class="role' + (isPrincipal ? '' : ' gold') + '">' + esc(p.role) + '</span><h3>' + esc(p.name) + '</h3><p>' + esc(p.text) + '</p></div></article>';
+  };
+
+  if(S.leaders && S.leaders.length){
+    var principal = S.leaders[0];
+    var vices = S.leaders.slice(1);
+    $('leaders').innerHTML = 
+      '<div class="leaders-principal">' + renderPerson(principal, true) + '</div>' +
+      '<div class="leaders-vices">' + vices.map(function(p){ return renderPerson(p, false); }).join('') + '</div>';
+  }
 
   /* لوحة الشرف: معرض صور بصف واحد وسهمين */
   var track = $('track'), prev = $('prev'), next = $('next');

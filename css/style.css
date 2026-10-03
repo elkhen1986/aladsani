@@ -281,3 +281,50 @@ h1,h2,h3,h4,p{margin:0}
 .a-card form{text-align:start}
 .a-card .btn{width:100%;margin-top:18px}
 .err404{font-size:96px;font-weight:900;line-height:1;color:var(--gold)}
+
+/* =============================================================
+   تعديل جديد: بطاقة المدير في النص ومرفوعة - زي الهيئة التعليمية
+   ============================================================= */
+.leaders{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  gap:32px !important;
+  grid-template-columns:unset !important;
+}
+.leaders-principal{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  transform: translateY(-16px);
+  z-index:3;
+}
+.leaders-principal .person.principal{
+  max-width:440px;
+  width:100%;
+  border:2px solid rgba(201,162,39,.75) !important;
+  box-shadow: 0 20px 44px -14px rgba(13,42,84,.38), 0 10px 24px -10px rgba(13,42,84,.22) !important;
+  transform: scale(1.04);
+}
+.leaders-principal .person.principal .p-media{
+  aspect-ratio:4/2.9;
+}
+.leaders-principal .person.principal .role{
+  background:linear-gradient(135deg,var(--gold),var(--gold-2)) !important;
+  color:var(--navy) !important;
+  font-size:13.5px;
+  padding:6px 20px;
+}
+.leaders-vices{
+  display:grid !important;
+  gap:24px !important;
+  width:100%;
+  max-width:860px;
+  grid-template-columns:repeat(2,1fr);
+}
+@media(max-width:680px){
+  .leaders{ gap:22px !important; }
+  .leaders-principal{ transform:none; }
+  .leaders-principal .person.principal{ transform:none; max-width:100%; }
+  .leaders-vices{ grid-template-columns:1fr; max-width:440px; }
+}
