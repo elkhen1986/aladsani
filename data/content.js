@@ -79,7 +79,7 @@ window.SITE = {
 function dept(name, subjects) {
   return {
     name: name,
-    head: { name: 'أ. إبراهيم الشهاوي', photo: '', bio: '' },
-    teachers: subjects.map(function (s) { return { name: 'أ. ناجي حسن', subject: 'كيمياء ' + s, photo: '' }; })
+    head: { name: 'أ. اسم رئيس القسم', photo: '', bio: 'نبذة مختصرة عن رئيس القسم وخبراته التعليمية، ويمكن تعديلها من ملف data/content.js.' },
+    teachers: subjects.map(function (s) { return { name: 'أ. اسم المعلم', subject: 'معلم ' + s, photo: '' }; })
   };
 }
