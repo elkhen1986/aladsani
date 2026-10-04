@@ -12,6 +12,7 @@
   var isArabic = /arabic|عربي/i.test(D.subject) || /عربي/i.test(D.title);
   var isMathStats = /math|رياض|إحصاء|احصاء|stat/i.test(D.subject) || /رياض|إحصاء|احصاء/i.test(D.title);
   var isSenior = /^(11|12)$/.test(String(D.grade)) || /حادي عشر|ثاني عشر|11|12/.test(String(D.grade));
+  var isGrade12 = /^12/.test(String(D.grade));
   var isMathSenior = isMathStats && isSenior;
   var isChem = /chem|كيميا|كيمياء/i.test(D.subject) || /كيميا|كيمياء/i.test(D.title);
   var isPhys = /phys|فيزيا|فيزياء/i.test(D.subject) || /فيزيا|فيزياء/i.test(D.title);
@@ -23,7 +24,11 @@
   if(isEnglish){
     LABEL = { book: "Student's Book", workbook: 'Workbook', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
   } else if(isArabic){
-    LABEL = { book: 'كتاب الطالب', nahw: 'قواعد النحو والصرف', balagha: 'فنون البلاغة', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+    if(isGrade12){
+      LABEL = { book: 'كتاب الطالب', nahw: 'قواعد النحو والصرف', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+    } else {
+      LABEL = { book: 'كتاب الطالب', nahw: 'قواعد النحو والصرف', balagha: 'فنون البلاغة', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+    }
   } else if(isMathSenior){
     LABEL = { book: 'كتاب الطالب', exercises: 'كتاب التمارين', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
   } else if(isScienceSenior){
@@ -61,7 +66,13 @@
     }
     if(isArabic){
       addTabIfMissing('nahw', 'قواعد النحو والصرف', 'book');
-      addTabIfMissing('balagha', 'فنون البلاغة', 'nahw');
+      if(!isGrade12){
+        addTabIfMissing('balagha', 'فنون البلاغة', 'nahw');
+      } else {
+        // لو الصف ثاني عشر احذف تبويب البلاغة لو موجود من الـ HTML القديم
+        var bTab = tabsBar.querySelector('[data-tab="balagha"]');
+        if(bTab) bTab.remove();
+      }
     }
     if(isMathSenior){
       addTabIfMissing('exercises', 'كتاب التمارين', 'book');
@@ -238,7 +249,12 @@
     var wbTab = document.querySelector('[data-tab="workbook"]');
     if(wbTab) wbTab.style.display = 'none';
   }
+  // إخفاء تبويب البلاغة نهائياً للصف الثاني عشر
+  if(isArabic && isGrade12){
+    var balaghaTabFinal = document.querySelector('[data-tab="balagha"]');
+    if(balaghaTabFinal) balaghaTabFinal.remove();
+  }
   var h = location.hash.slice(1);
-  var allTabs = isArabic ? ['book','nahw','balagha','qbank','quizzes','exams'] : isEnglish ? ['book','workbook','qbank','quizzes','exams'] : isMathSenior ? ['book','exercises','qbank','quizzes','exams'] : isScienceSenior ? ['book','applications','qbank','quizzes','exams'] : ['book','qbank','quizzes','exams'];
+  var allTabs = isArabic ? (isGrade12 ? ['book','nahw','qbank','quizzes','exams'] : ['book','nahw','balagha','qbank','quizzes','exams']) : isEnglish ? ['book','workbook','qbank','quizzes','exams'] : isMathSenior ? ['book','exercises','qbank','quizzes','exams'] : isScienceSenior ? ['book','applications','qbank','quizzes','exams'] : ['book','qbank','quizzes','exams'];
   show(allTabs.indexOf(h) > -1 ? h : 'book');
-})();
+})(); 
