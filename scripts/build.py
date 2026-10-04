@@ -42,7 +42,7 @@ GRADES = [
     dict(slug='12-science', name='الثاني عشر علمي', crumb='الثاني عشر علمي', badge='12 علمي',
          subjects=COMMON + ['math', 'chemistry', 'physics', 'biology', 'constitution', 'it']),
     dict(slug='12-arts', name='الثاني عشر أدبي', crumb='الثاني عشر أدبي', badge='12 أدبي',
-         subjects=COMMON + ['statistics', 'modern-history', 'french', 'philosophy', 'it']),
+         subjects=COMMON + ['statistics', 'modern-history', 'french', 'philosophy', 'constitution', 'it']),
 ]
 TILES = [
     ('10', '10', 'العاشر', 'الصف العاشر'), ('11-science', '11', 'علمي', 'الحادي عشر علمي'),
@@ -146,7 +146,7 @@ HOME = '''<main>
   <div>
     <span class="kicker">منصتكم التعليمية 2026-2027</span>
     <h2>مستقبل أبنائنا<span>يبدأ من هنا</span></h2>
-    <p class="lead">منصة تعليمية متكاملة لجميع الصفوف والمواد، تضم كتب الطالب وبنوك الأسئلة والاختبارات القصيرة واختبارات نهاية الفترة، بإشراف قسم الكيمياء والفيزياء.</p>
+    <p class="lead">في ثانوية العدساني، نحن لا نُعدّكم لاختبارٍ عابر، بل نُعدّكم لحياةٍ كاملة. نؤمن أن داخل كل واحدٍ منكم قائدًا ينتظر أن يستيقظ، وحلمًا كبيرًا يستحق أن يُقاتل من أجله حتى الرمق الأخير. هذه المنصة ليست مجرد كتبٍ وصفحات، بل هي عهدٌ نقطعه معكم، أن نسير معكم خطوةً بخطوة، من أول حرفٍ حتى لحظة التتويج، حتى يصبح تعب اليوم فخر الغد، وتصبحون أنتم فخر هذا الوطن ومستقبله.</p>
     <div class="cta">
       <a class="btn btn-navy" href="10/index.html">ابدأ - الصف العاشر</a>
       <details class="menu"><summary class="btn btn-gold">مواد الثاني عشر</summary>
