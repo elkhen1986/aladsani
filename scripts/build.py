@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-مولّد صفحات منصة العدساني - نسخة R2
-شغّله من جذر المشروع:   python scripts/build.py
+مولّد صفحات منصة العدساني.
+شغّله من جذر المشروع بعد أي تعديل على الصفوف أو المواد:   python scripts/build.py
+يعيد إنشاء كل صفحات HTML وفولدرات الـPDF (ولا يمسّ ملفات الـPDF الموجودة).
 """
 import pathlib
 from html import escape
@@ -10,7 +11,6 @@ from html import escape
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SCHOOL = 'العدساني الثانوية'
 
-# === رابط الكتب الخارجي من Cloudflare R2 ===
 PDF_BASE = "https://pub-56a4d2fe52a44044b6f3e74c57f80262.r2.dev/"
 
 TERMS = [
@@ -137,23 +137,46 @@ def get_tabs_html(grade_slug, subject_slug):
         f'<button type="button" class="tab" role="tab" data-tab="{k}">{v}</button>' for k, v in tabs
     )
 
+TAB_HTML = ''.join(
+    f'<button type="button" class="tab" role="tab" data-tab="{k}">{v}</button>' for k, v in
+    [('book', 'كتاب الطالب'), ('qbank', 'بنك الأسئلة'), ('quizzes', 'اختبارات قصيرة'), ('exams', 'اختبارات نهاية الفترة')])
+
 HOME = '''<main>
 <section class="hero"><div class="wrap">
   <div>
     <span class="kicker">منصتكم التعليمية 2026-2027</span>
     <h2>مستقبل أبنائنا<span>يبدأ من هنا</span></h2>
-    <p class="lead" id="heroLead"></p>
-    <div class="cta"><a class="btn btn-navy" href="#grades">استكشف الصفوف {arrow}</a><a class="btn btn-ghost" href="staff/index.html">الهيئة التعليمية</a></div>
-    <div class="free" id="freeBadge"></div>
+    <p class="lead">منصة تعليمية متكاملة لجميع الصفوف والمواد، تضم كتب الطالب وبنوك الأسئلة والاختبارات القصيرة واختبارات نهاية الفترة، بإشراف قسم الكيمياء والفيزياء.</p>
+    <div class="cta">
+      <a class="btn btn-navy" href="10/index.html">ابدأ - الصف العاشر</a>
+      <details class="menu"><summary class="btn btn-gold">مواد الثاني عشر</summary>
+        <div class="menu-pop"><a href="12-science/index.html">الثاني عشر علمي</a><a href="12-arts/index.html">الثاني عشر أدبي</a></div></details>
+    </div>
+    <div class="free">مجاني 100% لجميع الطلبة</div>
   </div>
-  <div class="tiles" id="grades">%TILES%</div>
+  <div class="logo-card"><div class="in">
+    <img src="assets/logo.png" alt="شعار مدرسة عبدالرزاق محمد صالح العدساني الثانوية - بنين">
+    <div class="tiles">%TILES%</div>
+  </div></div>
+</div></section>
+<section class="section wrap" aria-labelledby="t-leaders">
+  <div class="sec-head"><h2 class="sec-title" id="t-leaders">كلمة الإدارة المدرسية</h2></div>
+  <div class="leaders" id="leaders"></div>
+</section>
+<section class="honor" aria-labelledby="t-honor"><div class="wrap">
+  <div class="sec-head"><h2 class="sec-title" id="t-honor">لوحة شرف الفائقين</h2></div>
+  <div class="car">
+    <button type="button" class="arrow prev" id="prev" aria-label="السابق">›</button>
+    <div class="track" id="track"></div>
+    <button type="button" class="arrow next" id="next" aria-label="التالي">‹</button>
+  </div>
 </div></section>
 <section class="section wrap"><div class="about">
   <div class="about-text" id="about-text"></div>
   <div><div class="sec-head" id="offers-head"></div><div class="offers" id="offers"></div></div>
 </div></section>
 </main>
-<div class="modal" id="lightbox"><div class="m-box lb"><button type="button" class="m-x" aria-label="إغلاق">✕</button><img alt=""><h3></h3><p></p></div></div>'''.replace('{arrow}', ARROW)
+<div class="modal" id="lightbox"><div class="m-box lb"><button type="button" class="m-x" aria-label="إغلاق">✕</button><img alt=""><h3></h3><p></p></div></div>'''
 
 
 def build_home():
@@ -220,17 +243,37 @@ def build_subject(g, t, s):
     name = SUBJ[s][0]
     r = '../../../'
     tabs_html = get_tabs_html(g['slug'], s)
-    pdf_path = f"{PDF_BASE}pdf/{g['slug']}/{slug}/{s}/"
     body = (crumbs([('الرئيسية', r + 'index.html'), (g['crumb'], '../../index.html'), (short, '../index.html'), (name, None)]) +
             f'<div class="tabs-bar"><div class="wrap"><div class="tabs" role="tablist" aria-label="أقسام المادة">{tabs_html}</div></div></div>'
             f'<main id="subject" data-grade="{g["slug"]}" data-term="{slug}" data-subject="{s}" data-title="{name}" '
-            f'data-pdf="{pdf_path}"><section class="panel" id="panel" aria-live="polite"></section></main>')
+            f'data-pdf="{PDF_BASE}pdf/{g["slug"]}/{slug}/{s}/"><section class="panel" id="panel" aria-live="polite"></section></main>')
     write(f'{g["slug"]}/{slug}/{s}/index.html', page(r, f'{name} | {g["name"]} | {short} | {SCHOOL}',
           f'كتاب الطالب وبنك الأسئلة والاختبارات القصيرة واختبارات نهاية الفترة لمادة {name} - {g["name"]}.',
           g['slug'], body, ['js/viewer.js', 'js/subject.js']))
     keep = ROOT / 'pdf' / g['slug'] / slug / s
     keep.mkdir(parents=True, exist_ok=True)
     (keep / '.gitkeep').touch()
+
+
+PDF_README = '''# ملفات الـPDF
+
+كل مادة لها فولدر خاص بها بنفس شجرة الموقع:
+
+    pdf/<الصف>/<الفترة>/<المادة>/book.pdf    <- تبويب كتاب الطالب او Student's Book
+    pdf/<الصف>/<الفترة>/<المادة>/workbook.pdf  <- انجليزي فقط: Workbook
+    pdf/<الصف>/<الفترة>/<المادة>/exercises.pdf <- حادي عشر وثاني عشر رياضيات واحصاء: كتاب التمارين
+    pdf/<الصف>/<الفترة>/<المادة>/applications.pdf <- حادي عشر وثاني عشر كيمياء فيزياء احياء جيولوجيا: كراسة التطبيقات
+    pdf/<الصف>/<الفترة>/<المادة>/nahw.pdf <- عربي: قواعد النحو والصرف
+    pdf/<الصف>/<الفترة>/<المادة>/balagha.pdf <- عربي: فنون البلاغة
+    pdf/<الصف>/<الفترة>/<المادة>/qbank.pdf   <- تبويب بنك الأسئلة
+
+مثال: pdf/10/term1/chemistry/book.pdf
+
+* الصفوف: 10 ، 11-science ، 11-arts ، 12-science ، 12-arts
+* الفترات: term1 (الأولى) ، term2 (الثانية)
+* ان لم يوجد الملف تظهر رسالة لم يُرفع بعد.
+* اختبارات قصيرة ونهاية الفترة لا توضع هنا؛ تُضاف من الموقع بواسطة المشرف (صفحة /admin).
+'''
 
 
 def main():
@@ -242,7 +285,15 @@ def main():
             build_term(g, t); pages += 1
             for s in g['subjects']:
                 build_subject(g, t, s); pages += 1
-    print(f'تم إنشاء {pages} صفحة - الكتب الآن من R2: {PDF_BASE}')
+    write('pdf/README.md', PDF_README)
+    write('assets/img/subjects/README.txt',
+          'لتبديل غلاف أي مادة بصورة حقيقية: (1) ضع صورة JPG هنا باسم المادة، مثال: chemistry.jpg\n'
+          '(2) أضف اسم المادة إلى covers في ملف data/content.js، مثال: covers: [\'chemistry\']\n'
+          'أسماء الملفات: ' + ' ، '.join(f'{k}.jpg' for k in SUBJ) + '\n')
+    print(f'تم إنشاء {pages} صفحة، و{sum(len(g["subjects"]) for g in GRADES) * 2} فولدر مادة داخل pdf/')
+    print('المادة الجديدة: geo-econ في حادي عشر أدبي')
+    print('التبويبات الديناميكية مفعلة')
+    print(f'الكتب الآن من R2: {PDF_BASE}')
 
 
 if __name__ == '__main__':
