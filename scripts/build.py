@@ -170,9 +170,9 @@ HOME = '''<main>
 <section class="honor" aria-labelledby="t-honor"><div class="wrap">
   <div class="sec-head"><h2 class="sec-title" id="t-honor">لوحة شرف الفائقين</h2></div>
   <div class="car">
-    <button type="button" class="arrow prev" id="prev" aria-label="السابق">›</button>
+    <button type="button" class="arrow prev" id="prev" aria-label="السابق">‹</button>
     <div class="track" id="track"></div>
-    <button type="button" class="arrow next" id="next" aria-label="التالي">‹</button>
+    <button type="button" class="arrow next" id="next" aria-label="التالي">›</button>
   </div>
 </div></section>
 <section class="section wrap"><div class="about">

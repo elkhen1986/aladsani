@@ -1,26 +1,47 @@
-// قائمة كل الملفات المرفوعة (تُصفّى في المتصفح حسب الصف والفترة والمادة).
-// نخزّن الاستجابة مؤقتاً على CDN لتوفير عمليات list في الخطة المجانية (LIST_CACHE_SECONDS).
-import { list } from '@vercel/blob';
-import { parsePath } from '../lib/files.js';
+import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+
+const R2 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+});
 
 export default async function handler(req, res) {
   try {
-    const out = [];
-    let cursor;
-    do {
-      const page = await list({ prefix: 'files/', limit: 1000, cursor });
-      for (const b of page.blobs) {
-        const m = parsePath(b.pathname);
-        if (m) out.push({ grade: m.grade, term: m.term, subject: m.subject, kind: m.kind, title: m.title,
-          url: b.url, downloadUrl: b.downloadUrl, size: b.size, uploadedAt: b.uploadedAt });
-      }
-      cursor = page.hasMore ? page.cursor : undefined;
-    } while (cursor);
-    const ttl = Number(process.env.LIST_CACHE_SECONDS) || 900;
-    res.setHeader('Cache-Control', `public, max-age=60, s-maxage=${ttl}, stale-while-revalidate=86400`);
-    return res.status(200).json(out);
-  } catch (e) {
-    res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json([]); // أي خطأ (مثلاً Blob غير مفعّل بعد) = قائمة فارغة
+    const command = new ListObjectsV2Command({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Prefix: 'files/',
+      MaxKeys: 1000,
+    });
+
+    const data = await R2.send(command);
+    
+    const files = (data.Contents || [])
+      .filter(obj => obj.Key.endsWith('.pdf'))
+      .map(obj => {
+        // files/12-science/term1/chemistry/quizzes/12345_title.pdf
+        const parts = obj.Key.split('/');
+        if (parts.length < 6) return null;
+        return {
+          url: `${process.env.R2_PUBLIC_URL}/${obj.Key}`,
+          key: obj.Key,
+          grade: parts[1],
+          term: parts[2],
+          subject: parts[3],
+          kind: parts[4],
+          title: parts[5].replace(/^\d+_/, '').replace(/\.pdf$/, '').replace(/_/g, ' '),
+          size: obj.Size,
+          uploadedAt: obj.LastModified,
+        };
+      })
+      .filter(Boolean);
+
+    return res.status(200).json(files);
+  } catch (err) {
+    console.error('R2 list error', err);
+    return res.status(500).json([]);
   }
 }

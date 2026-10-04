@@ -178,17 +178,63 @@
     var bin = ''; new TextEncoder().encode(s).forEach(function (b) { bin += String.fromCharCode(b); });
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-  async function send(kind, title, f, onp) {
+async function send(kind, title, f, onp) {
     var item = { grade: D.grade, term: D.term, subject: D.subject, kind: kind, title: title, size: f.size, uploadedAt: new Date().toISOString() };
-    if (st.preview) {                                   /* معاينة محلية بدون خادم */
+    if (st.preview) {
       for (var i = 1; i <= 10; i++) { await new Promise(function (r) { setTimeout(r, 70); }); onp(i * 10); }
       item.url = URL.createObjectURL(f); return item;
     }
-    /* رفع مباشر من المتصفح إلى Vercel Blob (يتجاوز حد 4.5MB لدوال Vercel) */
-    var path = 'files/' + D.grade + '/' + D.term + '/' + D.subject + '/' + kind + '/' + Date.now() + '_' + b64u(title) + '.pdf';
-    var mod = await import('https://esm.sh/@vercel/blob@2/client');
-    var blob = await mod.upload(path, f, { access: 'public', handleUploadUrl: '/api/upload', multipart: f.size > 25 * 1048576, onUploadProgress: function (p) { onp(p.percentage); } });
-    item.url = blob.url; item.downloadUrl = blob.downloadUrl; return item;
+    // ===== رفع مباشر إلى Cloudflare R2 (يتجاوز حد 4.5MB بتاع Vercel) =====
+    // 1- نطلب رابط رفع مباشر من السيرفر
+    var presignRes = await fetch('/api/r2-presign', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grade: D.grade,
+        term: D.term,
+        subject: D.subject,
+        kind: kind,
+        title: title,
+        size: f.size
+      })
+    });
+    if (!presignRes.ok) {
+      var errData = await presignRes.json().catch(function(){ return {}; });
+      throw new Error(errData.error || 'فشل إنشاء رابط الرفع');
+    }
+    var presignData = await presignRes.json();
+    
+    // 2- نرفع الملف مباشرة إلى R2 (بدون ما يمر على Vercel)
+    var formData = new FormData();
+    Object.keys(presignData.fields).forEach(function(key){
+      formData.append(key, presignData.fields[key]);
+    });
+    formData.append('file', f);
+
+    var xhr = new XMLHttpRequest();
+    var uploadPromise = new Promise(function(resolve, reject){
+      xhr.upload.onprogress = function(e){
+        if(e.lengthComputable){
+          var percent = Math.round((e.loaded / e.total) * 100);
+          onp(percent);
+        }
+      };
+      xhr.onload = function(){
+        if(xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error('Upload failed: ' + xhr.status));
+      };
+      xhr.onerror = function(){ reject(new Error('Network error')); };
+    });
+
+    xhr.open('POST', presignData.url);
+    xhr.send(formData);
+    await uploadPromise;
+
+    // 3- نرجع بيانات الملف
+    item.url = presignData.publicUrl;
+    item.key = presignData.key;
+    return item;
   }
   function buildModal() {
     modal = document.createElement('div'); modal.className = 'modal';
