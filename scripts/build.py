@@ -102,14 +102,23 @@ def get_tabs_html(grade_slug, subject_slug):
             ('exams', 'اختبارات نهاية الفترة')
         ]
     elif subject_slug == 'arabic':
-        tabs = [
-            ('book', 'كتاب الطالب'),
-            ('nahw', 'قواعد النحو والصرف'),
-            ('balagha', 'فنون البلاغة'),
-            ('qbank', 'بنك الأسئلة'),
-            ('quizzes', 'اختبارات قصيرة'),
-            ('exams', 'اختبارات نهاية الفترة')
-        ]
+        if grade_slug.startswith('12'):
+            tabs = [
+                ('book', 'كتاب الطالب'),
+                ('nahw', 'قواعد النحو والصرف'),
+                ('qbank', 'بنك الأسئلة'),
+                ('quizzes', 'اختبارات قصيرة'),
+                ('exams', 'اختبارات نهاية الفترة')
+            ]
+        else:
+            tabs = [
+                ('book', 'كتاب الطالب'),
+                ('nahw', 'قواعد النحو والصرف'),
+                ('balagha', 'فنون البلاغة'),
+                ('qbank', 'بنك الأسئلة'),
+                ('quizzes', 'اختبارات قصيرة'),
+                ('exams', 'اختبارات نهاية الفترة')
+            ]
     elif is_senior and subject_slug in ('math', 'statistics'):
         tabs = [
             ('book', 'كتاب الطالب'),
@@ -147,11 +156,6 @@ HOME = '''<main>
     <span class="kicker">منصتكم التعليمية 2026-2027</span>
     <h2>مستقبل أبنائنا<span>يبدأ من هنا</span></h2>
     <p class="lead">في ثانوية العدساني، نحن لا نُعدّكم لاختبارٍ عابر، بل نُعدّكم لحياةٍ كاملة. نؤمن أن داخل كل واحدٍ منكم قائدًا ينتظر أن يستيقظ، وحلمًا كبيرًا يستحق أن يُقاتل من أجله حتى الرمق الأخير. هذه المنصة ليست مجرد كتبٍ وصفحات، بل هي عهدٌ نقطعه معكم، أن نسير معكم خطوةً بخطوة، من أول حرفٍ حتى لحظة التتويج، حتى يصبح تعب اليوم فخر الغد، وتصبحون أنتم فخر هذا الوطن ومستقبله.</p>
-    <div class="cta">
-      <a class="btn btn-navy" href="10/index.html">ابدأ - الصف العاشر</a>
-      <details class="menu"><summary class="btn btn-gold">مواد الثاني عشر</summary>
-        <div class="menu-pop"><a href="12-science/index.html">الثاني عشر علمي</a><a href="12-arts/index.html">الثاني عشر أدبي</a></div></details>
-    </div>
     <div class="free">مجاني 100% لجميع الطلبة</div>
   </div>
   <div class="logo-card"><div class="in">
