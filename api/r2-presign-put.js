@@ -13,10 +13,10 @@ const R2 = new S3Client({
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { grade, term, subject, kind, title, size } = req.body;
+  const { grade, term, subject, kind, title } = req.body;
 
-  if (!process.env.R2_BUCKET_NAME || !process.env.R2_PUBLIC_URL) {
-    return res.status(500).json({ error: 'R2 env not configured' });
+  if (!process.env.R2_BUCKET_NAME) {
+    return res.status(500).json({ error: 'R2_BUCKET_NAME missing' });
   }
 
   const safeTitle = String(title).replace(/[^a-zA-Z0-9-_\u0600-\u06FF ]/g, '_').slice(0,60).replace(/\s+/g,'_');
@@ -28,7 +28,6 @@ export default async function handler(req, res) {
       Key: key,
       ContentType: 'application/pdf',
     });
-
     const signedUrl = await getSignedUrl(R2, command, { expiresIn: 120 });
 
     return res.status(200).json({
@@ -37,7 +36,7 @@ export default async function handler(req, res) {
       publicUrl: `${process.env.R2_PUBLIC_URL}/${key}`
     });
   } catch (e) {
-    console.error(e);
+    console.error('R2 PUT presign error', e);
     return res.status(500).json({ error: e.message });
   }
 }

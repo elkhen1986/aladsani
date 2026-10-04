@@ -11,6 +11,10 @@ const R2 = new S3Client({
 
 export default async function handler(req, res) {
   try {
+    if (!process.env.R2_BUCKET_NAME) {
+      return res.status(200).json([]);
+    }
+
     const command = new ListObjectsV2Command({
       Bucket: process.env.R2_BUCKET_NAME,
       Prefix: 'files/',
@@ -22,7 +26,6 @@ export default async function handler(req, res) {
     const files = (data.Contents || [])
       .filter(obj => obj.Key.endsWith('.pdf'))
       .map(obj => {
-        // files/12-science/term1/chemistry/quizzes/12345_title.pdf
         const parts = obj.Key.split('/');
         if (parts.length < 6) return null;
         return {
@@ -41,7 +44,11 @@ export default async function handler(req, res) {
 
     return res.status(200).json(files);
   } catch (err) {
-    console.error('R2 list error', err);
-    return res.status(500).json([]);
+    console.error('R2 list error', err.message);
+    // لو Access Denied رجع لستة فاضية مؤقتا عشان الموقع مايقعش
+    if (err.message.includes('AccessDenied') || err.message.includes('Access Denied')) {
+      return res.status(200).json([]);
+    }
+    return res.status(500).json({ error: err.message });
   }
 }
