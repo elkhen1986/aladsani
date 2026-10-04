@@ -69,7 +69,6 @@
       if(!isGrade12){
         addTabIfMissing('balagha', 'فنون البلاغة', 'nahw');
       } else {
-        // لو الصف ثاني عشر احذف تبويب البلاغة لو موجود من الـ HTML القديم
         var bTab = tabsBar.querySelector('[data-tab="balagha"]');
         if(bTab) bTab.remove();
       }
@@ -80,11 +79,8 @@
     if(isScienceSenior){
       addTabIfMissing('applications', 'كراسة التطبيقات', 'book');
     }
-    // تحديث قائمة التبويبات
     tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
   })();
-
-
 
   /* هل المستخدم مشرف؟ محلياً (بدون API) تُفعَّل المعاينة التجريبية */
   var ready = (async function () {
@@ -120,7 +116,7 @@
       try {
         var r = await fetch('/api/files' + (st.admin ? '?t=' + Date.now() : ''), { credentials: 'same-origin' });
         if (r.ok) all = await r.json();
-      } catch (e) { /* لا توجد ملفات */ }
+      } catch (e) { }
     }
     st.files = all.filter(function (f) { return f.grade === D.grade && f.term === D.term && f.subject === D.subject; });
     return st.files;
@@ -178,38 +174,22 @@
     var bin = ''; new TextEncoder().encode(s).forEach(function (b) { bin += String.fromCharCode(b); });
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-async function send(kind, title, f, onp) {
+
+  // ====== النسخة المصلحة: رفع عبر Proxy بدلاً من presigned POST (يحل مشكلة CORS) ======
+  async function send(kind, title, f, onp) {
     var item = { grade: D.grade, term: D.term, subject: D.subject, kind: kind, title: title, size: f.size, uploadedAt: new Date().toISOString() };
     if (st.preview) {
       for (var i = 1; i <= 10; i++) { await new Promise(function (r) { setTimeout(r, 70); }); onp(i * 10); }
       item.url = URL.createObjectURL(f); return item;
     }
-    // ===== رفع مباشر إلى Cloudflare R2 (يتجاوز حد 4.5MB بتاع Vercel) =====
-    // 1- نطلب رابط رفع مباشر من السيرفر
-    var presignRes = await fetch('/api/r2-presign', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grade: D.grade,
-        term: D.term,
-        subject: D.subject,
-        kind: kind,
-        title: title,
-        size: f.size
-      })
-    });
-    if (!presignRes.ok) {
-      var errData = await presignRes.json().catch(function(){ return {}; });
-      throw new Error(errData.error || 'فشل إنشاء رابط الرفع');
-    }
-    var presignData = await presignRes.json();
-    
-    // 2- نرفع الملف مباشرة إلى R2 (بدون ما يمر على Vercel)
+
+    // رفع عبر /api/upload-r2 (Proxy) - يتجاوز CORS وحد 4.5MB
     var formData = new FormData();
-    Object.keys(presignData.fields).forEach(function(key){
-      formData.append(key, presignData.fields[key]);
-    });
+    formData.append('grade', D.grade);
+    formData.append('term', D.term);
+    formData.append('subject', D.subject);
+    formData.append('kind', kind);
+    formData.append('title', title);
     formData.append('file', f);
 
     var xhr = new XMLHttpRequest();
@@ -221,21 +201,33 @@ async function send(kind, title, f, onp) {
         }
       };
       xhr.onload = function(){
-        if(xhr.status >= 200 && xhr.status < 300) resolve();
-        else reject(new Error('Upload failed: ' + xhr.status));
+        if(xhr.status >= 200 && xhr.status < 300){
+          try {
+            var resp = JSON.parse(xhr.responseText);
+            resolve(resp);
+          } catch (e) {
+            reject(new Error('Invalid server response'));
+          }
+        } else {
+          var msg = xhr.responseText;
+          try { msg = JSON.parse(msg).error || msg; } catch(e){}
+          reject(new Error('Upload failed: ' + xhr.status + ' ' + msg));
+        }
       };
-      xhr.onerror = function(){ reject(new Error('Network error')); };
+      xhr.onerror = function(){ reject(new Error('Network error - تأكد من تسجيل الدخول')); };
     });
 
-    xhr.open('POST', presignData.url);
+    xhr.open('POST', '/api/upload-r2');
+    xhr.withCredentials = true;
     xhr.send(formData);
-    await uploadPromise;
+    var resp = await uploadPromise;
 
-    // 3- نرجع بيانات الملف
-    item.url = presignData.publicUrl;
-    item.key = presignData.key;
+    item.url = resp.url;
+    item.key = resp.key;
+    item.publicUrl = resp.publicUrl || resp.url;
     return item;
   }
+
   function buildModal() {
     modal = document.createElement('div'); modal.className = 'modal';
     modal.innerHTML = '<div class="m-box" role="dialog" aria-modal="true" aria-labelledby="upT"><button type="button" class="m-x" aria-label="إغلاق">✕</button>' +
@@ -271,7 +263,10 @@ async function send(kind, title, f, onp) {
         var item = await send(curKind, title, file, function (p) { bar.firstChild.style.width = p + '%'; });
         await loadFiles(); st.files.push(item);
         modal.classList.remove('open'); toast('تم رفع الملف بنجاح'); show(curKind);
-      } catch (e) { err('تعذّر الرفع. تأكد أنك مسجّل كمشرف (صفحة /admin) وأن الملف PDF أقل من 50 ميغابايت.'); }
+      } catch (e) { 
+        console.error(e);
+        err(e.message || 'تعذّر الرفع. تأكد أنك مسجّل كمشرف (صفحة /admin) وأن الملف PDF أقل من 50 ميغابايت.'); 
+      }
       go.disabled = false;
     };
     modal.reset = function () { pick(null); name.value = ''; err(''); bar.style.display = 'none'; input.value = ''; };
@@ -290,12 +285,10 @@ async function send(kind, title, f, onp) {
     if (['book','workbook','nahw','balagha','exercises','applications','qbank'].indexOf(tab) > -1) showStatic(tab, my); else showList(tab, my);
   }
   tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.getAttribute('data-tab'), true); }); });
-  // إخفاء تبويب Workbook لو المادة مش إنجليزي (اختياري - لو عايزه لكل المواد شيل الشرط ده)
   if(!isEnglish){
     var wbTab = document.querySelector('[data-tab="workbook"]');
     if(wbTab) wbTab.style.display = 'none';
   }
-  // إخفاء تبويب البلاغة نهائياً للصف الثاني عشر
   if(isArabic && isGrade12){
     var balaghaTabFinal = document.querySelector('[data-tab="balagha"]');
     if(balaghaTabFinal) balaghaTabFinal.remove();
@@ -303,4 +296,4 @@ async function send(kind, title, f, onp) {
   var h = location.hash.slice(1);
   var allTabs = isArabic ? (isGrade12 ? ['book','nahw','qbank','quizzes','exams'] : ['book','nahw','balagha','qbank','quizzes','exams']) : isEnglish ? ['book','workbook','qbank','quizzes','exams'] : isMathSenior ? ['book','exercises','qbank','quizzes','exams'] : isScienceSenior ? ['book','applications','qbank','quizzes','exams'] : ['book','qbank','quizzes','exams'];
   show(allTabs.indexOf(h) > -1 ? h : 'book');
-})(); 
+})();
