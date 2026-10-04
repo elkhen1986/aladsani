@@ -306,8 +306,8 @@ h1,h2,h3,h4,p{margin:0}
 .f-card{display:flex;align-items:center;gap:16px;padding:16px 20px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh-sm);transition:border-color .25s,box-shadow .25s}
 .f-card:hover{border-color:rgba(201,162,39,.7);box-shadow:var(--sh-md)}
 .f-ico{flex:0 0 52px;height:52px;border-radius:14px;display:grid;place-items:center;background:#fdecec;color:#d23b3b;font-weight:900;font-size:13px}
-.f-info{flex:1;min-width:0}
-.f-info h4{font-size:16px;font-weight:800;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.f-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.f-info h4{font-size:16px;font-weight:800;color:var(--navy);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;min-height:22px}
 .f-meta{display:flex;gap:14px;font-size:12.5px;color:var(--muted)}
 .f-act{display:flex;gap:8px;flex:0 0 auto}
 .add-card{display:grid;justify-items:center;gap:8px;padding:26px;border:2px dashed #c4cde0;border-radius:20px;background:rgba(255,255,255,.65);color:var(--navy);font-weight:800;transition:border-color .25s,background .25s}
