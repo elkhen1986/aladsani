@@ -1,6 +1,4 @@
-/* =====================================================================
-   الصفحة الرئيسية - تصميم جديد: سطر واحد المدير في النص مرفوع بإطار ذهبي
-   ===================================================================== */
+/* الصفحة الرئيسية - تصميم سطر واحد + الكلمة ظاهرة دايما */
 (function () {
   var S = window.SITE, R = document.currentScript.getAttribute('data-root') || '';
   var $ = function (id) { return document.getElementById(id); };
@@ -8,28 +6,18 @@
   var src = function (p) { return /^(https?:)?\/\//.test(p) ? p : R + p; };
   var fb = ' onerror="this.onerror=null;this.src=\'' + R + 'assets/img/avatar.jpg\'"';
 
-  /* كلمة الإدارة - سطر واحد */
   var renderPerson = function(p, isPrincipal){
     return '<article class="person' + (isPrincipal ? ' principal' : '') + '"><div class="p-media"><img src="' + esc(src(p.photo)) + '" alt="' + esc(p.name) + '" loading="lazy"' + fb + '></div>' +
-      '<div class="p-body"><span class="role' + (isPrincipal ? ' principal-role' : ' gold') + '">' + esc(p.role) + '</span><h3>' + esc(p.name) + '</h3></div></article>';
+      '<div class="p-body"><span class="role' + (isPrincipal ? ' principal-role' : ' gold') + '">' + esc(p.role) + '</span><h3>' + esc(p.name) + '</h3><p class="p-text">' + esc(p.text) + '</p></div></article>';
   };
 
   if(S.leaders && S.leaders.length){
     var principal = S.leaders[0];
     var vices = S.leaders.slice(1);
-    // الترتيب المطابق للصورة: الإداري يسار - المدير وسط - التعليمي يمين
-    var ordered = [];
-    if(vices.length >= 2){
-      ordered = [vices[1], principal, vices[0]]; // طارق - فهد - وليد
-    }else{
-      ordered = S.leaders;
-    }
-    $('leaders').innerHTML = ordered.map(function(p){
-      return renderPerson(p, p === principal);
-    }).join('');
+    var ordered = vices.length >= 2 ? [vices[1], principal, vices[0]] : S.leaders;
+    $('leaders').innerHTML = ordered.map(function(p){ return renderPerson(p, p === principal); }).join('');
   }
 
-  /* لوحة الشرف: معرض صور بصف واحد وسهمين */
   var track = $('track'), prev = $('prev'), next = $('next');
   if(track){
     track.innerHTML = S.honor.map(function (h, i) {
@@ -48,7 +36,6 @@
     sync();
   }
 
-  /* تكبير صورة الطالب */
   var lb = $('lightbox');
   if(track && lb){
     track.addEventListener('click', function (e) {
@@ -61,7 +48,6 @@
     lb.addEventListener('click', function (e) { if (e.target === lb || e.target.closest('.m-x')) lb.classList.remove('open'); });
   }
 
-  /* من نحن + ماذا نقدم */
   var a = S.about;
   if($('about-text')){
     $('about-text').innerHTML = '<h2 class="sec-title">' + esc(a.title) + '</h2><p>' + esc(a.text) + '</p>' +

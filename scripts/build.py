@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-مولّد صفحات منصة العدساني.
-شغّله من جذر المشروع بعد أي تعديل على الصفوف أو المواد:   python scripts/build.py
-يعيد إنشاء كل صفحات HTML وفولدرات الـPDF (ولا يمسّ ملفات الـPDF الموجودة).
+مولّد صفحات منصة العدساني - نسخة R2
+شغّله من جذر المشروع:   python scripts/build.py
 """
 import pathlib
 from html import escape
@@ -11,37 +10,41 @@ from html import escape
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SCHOOL = 'العدساني الثانوية'
 
-TERMS = [  # (المجلد، الاسم الكامل، الرقم، الاسم المختصر)
+# === رابط الكتب الخارجي من Cloudflare R2 ===
+PDF_BASE = "https://pub-56a4d2fe52a44044b6f3e74c57f80262.r2.dev/"
+
+TERMS = [
     ('term1', 'الفترة الدراسية الأولى', '1', 'الفترة الأولى'),
     ('term2', 'الفترة الدراسية الثانية', '2', 'الفترة الثانية'),
 ]
 
-SUBJ = {  # slug: (الاسم، رمز، درجة اللون)
+SUBJ = {
     'quran': ('القرآن الكريم', '📖', 152), 'islamic': ('التربية الإسلامية', '🕌', 168),
-    'arabic': ('اللغة العربية', '✍️', 22), 'english': ('اللغة الإنجليزية', '🔤', 262),
+    'arabic': ('اللغة العربية', '✍', 22), 'english': ('اللغة الإنجليزية', '🔤', 262),
     'math': ('الرياضيات', '📐', 215), 'chemistry': ('الكيمياء', '🧪', 188),
-    'physics': ('الفيزياء', '⚛️', 232), 'biology': ('الأحياء', '🧬', 128),
-    'it': ('تقنية المعلومات', '💻', 245), 'kuwait-history': ('تاريخ الكويت', '🏛️', 35),
-    'geology': ('الجيولوجيا', '⛰️', 18), 'statistics': ('الإحصاء', '📊', 205),
+    'physics': ('الفيزياء', '⚛', 232), 'biology': ('الأحياء', '🧬', 128),
+    'it': ('تقنية المعلومات', '💻', 245), 'kuwait-history': ('تاريخ الكويت', '🏛', 35),
+    'geology': ('الجيولوجيا', '⛰', 18), 'statistics': ('الإحصاء', '📊', 205),
     'islamic-history': ('التاريخ الإسلامي', '📜', 42), 'french': ('اللغة الفرنسية', '🗼', 280),
     'psychology-sociology': ('علم النفس وعلم الاجتماع', '🧠', 300),
-    'constitution': ('الدستور وحقوق الإنسان', '⚖️', 222),
+    'constitution': ('الدستور وحقوق الإنسان', '⚖', 222),
     'modern-history': ('تاريخ العالم الحديث والمعاصر', '🌍', 175), 'philosophy': ('الفلسفة', '💭', 270),
+    'geo-econ': ('مبادئ علم الجغرافيا وعلم الاقتصاد', '🌍', 95),
 }
 COMMON = ['quran', 'islamic', 'arabic', 'english']
-GRADES = [  # مجلد الصف، الاسم، اسم المسار، الشارة، مواده
+GRADES = [
     dict(slug='10', name='الصف العاشر', crumb='العاشر', badge='الصف 10',
          subjects=COMMON + ['math', 'chemistry', 'physics', 'biology', 'it', 'kuwait-history']),
     dict(slug='11-science', name='الحادي عشر علمي', crumb='الحادي عشر علمي', badge='11 علمي',
          subjects=COMMON + ['math', 'chemistry', 'physics', 'biology', 'geology', 'it']),
     dict(slug='11-arts', name='الحادي عشر أدبي', crumb='الحادي عشر أدبي', badge='11 أدبي',
-         subjects=COMMON + ['statistics', 'islamic-history', 'french', 'psychology-sociology', 'it']),
+         subjects=COMMON + ['statistics', 'islamic-history', 'french', 'psychology-sociology', 'geo-econ', 'it']),
     dict(slug='12-science', name='الثاني عشر علمي', crumb='الثاني عشر علمي', badge='12 علمي',
          subjects=COMMON + ['math', 'chemistry', 'physics', 'biology', 'constitution', 'it']),
     dict(slug='12-arts', name='الثاني عشر أدبي', crumb='الثاني عشر أدبي', badge='12 أدبي',
          subjects=COMMON + ['statistics', 'modern-history', 'french', 'philosophy', 'it']),
 ]
-TILES = [  # (مجلد، الرقم، الوصف تحت الرقم، الاسم الكامل)
+TILES = [
     ('10', '10', 'العاشر', 'الصف العاشر'), ('11-science', '11', 'علمي', 'الحادي عشر علمي'),
     ('11-arts', '11', 'أدبي', 'الحادي عشر أدبي'), ('12-science', '12', 'علمي', 'الثاني عشر علمي'),
     ('12-arts', '12', 'أدبي', 'الثاني عشر أدبي'),
@@ -50,9 +53,7 @@ ARROW = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-widt
          'stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>')
 
 
-# ------------------------------------------------------------------ قوالب مشتركة
 def page(root, title, desc, active, body, scripts=(), extra_head=''):
-    """root = المسار من الصفحة إلى جذر الموقع (../ بعدد العمق) — أو / لصفحة 404"""
     sc = ''.join(f'<script src="{root}{s}" data-root="{root}"></script>' for s in scripts)
     return f'''<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -80,7 +81,6 @@ def page(root, title, desc, active, body, scripts=(), extra_head=''):
 
 
 def crumbs(items):
-    """items: [(النص، الرابط أو None)] — الأخير بلا رابط"""
     parts = [f'<a href="{h}">{escape(t)}</a>' if h else f'<span>{escape(t)}</span>' for t, h in items]
     return '<nav class="crumbs" aria-label="المسار"><div class="wrap">' + '<i>/</i>'.join(parts) + '</div></nav>'
 
@@ -91,46 +91,69 @@ def write(rel, text):
     p.write_text(text, encoding='utf-8', newline='\n')
 
 
-# ------------------------------------------------------------------ الصفحات
+def get_tabs_html(grade_slug, subject_slug):
+    is_senior = grade_slug.startswith('11') or grade_slug.startswith('12')
+    if subject_slug == 'english':
+        tabs = [
+            ('book', "Student's Book"),
+            ('workbook', 'Workbook'),
+            ('qbank', 'بنك الأسئلة'),
+            ('quizzes', 'اختبارات قصيرة'),
+            ('exams', 'اختبارات نهاية الفترة')
+        ]
+    elif subject_slug == 'arabic':
+        tabs = [
+            ('book', 'كتاب الطالب'),
+            ('nahw', 'قواعد النحو والصرف'),
+            ('balagha', 'فنون البلاغة'),
+            ('qbank', 'بنك الأسئلة'),
+            ('quizzes', 'اختبارات قصيرة'),
+            ('exams', 'اختبارات نهاية الفترة')
+        ]
+    elif is_senior and subject_slug in ('math', 'statistics'):
+        tabs = [
+            ('book', 'كتاب الطالب'),
+            ('exercises', 'كتاب التمارين'),
+            ('qbank', 'بنك الأسئلة'),
+            ('quizzes', 'اختبارات قصيرة'),
+            ('exams', 'اختبارات نهاية الفترة')
+        ]
+    elif is_senior and subject_slug in ('chemistry', 'physics', 'biology', 'geology'):
+        tabs = [
+            ('book', 'كتاب الطالب'),
+            ('applications', 'كراسة التطبيقات'),
+            ('qbank', 'بنك الأسئلة'),
+            ('quizzes', 'اختبارات قصيرة'),
+            ('exams', 'اختبارات نهاية الفترة')
+        ]
+    else:
+        tabs = [
+            ('book', 'كتاب الطالب'),
+            ('qbank', 'بنك الأسئلة'),
+            ('quizzes', 'اختبارات قصيرة'),
+            ('exams', 'اختبارات نهاية الفترة')
+        ]
+    return ''.join(
+        f'<button type="button" class="tab" role="tab" data-tab="{k}">{v}</button>' for k, v in tabs
+    )
+
 HOME = '''<main>
 <section class="hero"><div class="wrap">
   <div>
     <span class="kicker">منصتكم التعليمية 2026-2027</span>
     <h2>مستقبل أبنائنا<span>يبدأ من هنا</span></h2>
-    <p class="lead">منصة تعليمية متكاملة لجميع الصفوف والمواد، تضم كتب الطالب وبنوك الأسئلة والاختبارات القصيرة واختبارات نهاية الفترة، بإشراف قسم الكيمياء والفيزياء.</p>
-    <div class="cta">
-      <a class="btn btn-navy" href="10/index.html">ابدأ - الصف العاشر</a>
-      <details class="menu"><summary class="btn btn-gold">مواد الثاني عشر</summary>
-        <div class="menu-pop"><a href="12-science/index.html">الثاني عشر علمي</a><a href="12-arts/index.html">الثاني عشر أدبي</a></div></details>
-    </div>
-    <div class="free">مجاني 100% لجميع الطلبة</div>
+    <p class="lead" id="heroLead"></p>
+    <div class="cta"><a class="btn btn-navy" href="#grades">استكشف الصفوف {arrow}</a><a class="btn btn-ghost" href="staff/index.html">الهيئة التعليمية</a></div>
+    <div class="free" id="freeBadge"></div>
   </div>
-  <div class="logo-card"><div class="in">
-    <img src="assets/logo.png" alt="شعار مدرسة عبدالرزاق محمد صالح العدساني الثانوية - بنين">
-    <div class="tiles">%TILES%</div>
-  </div></div>
+  <div class="tiles" id="grades">%TILES%</div>
 </div></section>
-
-<section class="section wrap" aria-labelledby="t-leaders">
-  <div class="sec-head"><h2 class="sec-title" id="t-leaders">كلمة الإدارة المدرسية</h2></div>
-  <div class="leaders" id="leaders"></div>
-</section>
-
-<section class="honor" aria-labelledby="t-honor"><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" id="t-honor">لوحة شرف الفائقين</h2></div>
-  <div class="car">
-    <button type="button" class="arrow prev" id="prev" aria-label="السابق">›</button>
-    <div class="track" id="track"></div>
-    <button type="button" class="arrow next" id="next" aria-label="التالي">‹</button>
-  </div>
-</div></section>
-
 <section class="section wrap"><div class="about">
   <div class="about-text" id="about-text"></div>
   <div><div class="sec-head" id="offers-head"></div><div class="offers" id="offers"></div></div>
 </div></section>
 </main>
-<div class="modal" id="lightbox"><div class="m-box lb"><button type="button" class="m-x" aria-label="إغلاق">✕</button><img alt=""><h3></h3><p></p></div></div>'''
+<div class="modal" id="lightbox"><div class="m-box lb"><button type="button" class="m-x" aria-label="إغلاق">✕</button><img alt=""><h3></h3><p></p></div></div>'''.replace('{arrow}', ARROW)
 
 
 def build_home():
@@ -192,42 +215,22 @@ def build_term(g, t):
           f'مواد {g["name"]} - {full}.', g['slug'], body, ['data/content.js', 'js/covers.js']))
 
 
-TAB_HTML = ''.join(
-    f'<button type="button" class="tab" role="tab" data-tab="{k}">{v}</button>' for k, v in
-    [('book', 'كتاب الطالب'), ('qbank', 'بنك الأسئلة'), ('quizzes', 'اختبارات قصيرة'), ('exams', 'اختبارات نهاية الفترة')])
-
-
 def build_subject(g, t, s):
     slug, full, num, short = t
     name = SUBJ[s][0]
     r = '../../../'
+    tabs_html = get_tabs_html(g['slug'], s)
+    pdf_path = f"{PDF_BASE}pdf/{g['slug']}/{slug}/{s}/"
     body = (crumbs([('الرئيسية', r + 'index.html'), (g['crumb'], '../../index.html'), (short, '../index.html'), (name, None)]) +
-            f'<div class="tabs-bar"><div class="wrap"><div class="tabs" role="tablist" aria-label="أقسام المادة">{TAB_HTML}</div></div></div>'
+            f'<div class="tabs-bar"><div class="wrap"><div class="tabs" role="tablist" aria-label="أقسام المادة">{tabs_html}</div></div></div>'
             f'<main id="subject" data-grade="{g["slug"]}" data-term="{slug}" data-subject="{s}" data-title="{name}" '
-            f'data-pdf="{r}pdf/{g["slug"]}/{slug}/{s}/"><section class="panel" id="panel" aria-live="polite"></section></main>')
+            f'data-pdf="{pdf_path}"><section class="panel" id="panel" aria-live="polite"></section></main>')
     write(f'{g["slug"]}/{slug}/{s}/index.html', page(r, f'{name} | {g["name"]} | {short} | {SCHOOL}',
           f'كتاب الطالب وبنك الأسئلة والاختبارات القصيرة واختبارات نهاية الفترة لمادة {name} - {g["name"]}.',
           g['slug'], body, ['js/viewer.js', 'js/subject.js']))
     keep = ROOT / 'pdf' / g['slug'] / slug / s
     keep.mkdir(parents=True, exist_ok=True)
     (keep / '.gitkeep').touch()
-
-
-PDF_README = '''# ملفات الـPDF
-
-كل مادة لها فولدر خاص بها بنفس شجرة الموقع:
-
-    pdf/<الصف>/<الفترة>/<المادة>/book.pdf    ← تبويب «كتاب الطالب»
-    pdf/<الصف>/<الفترة>/<المادة>/qbank.pdf   ← تبويب «بنك الأسئلة»
-
-مثال: pdf/10/term1/chemistry/book.pdf
-
-* الصفوف: 10 ، 11-science ، 11-arts ، 12-science ، 12-arts
-* الفترات: term1 (الأولى) ، term2 (الثانية)
-* الاسمان book.pdf و qbank.pdf ثابتان (حروف صغيرة). إن لم يوجد الملف تظهر رسالة «لم يُرفع بعد».
-* «اختبارات قصيرة» و«اختبارات نهاية الفترة» لا توضع هنا؛ تُضاف من الموقع بواسطة المشرف (صفحة /admin).
-* حدّ GitHub: الملف الواحد أقل من 100MB (ويُفضّل أقل من 50MB). اضغط الملفات الكبيرة قبل الرفع.
-'''
 
 
 def main():
@@ -239,12 +242,7 @@ def main():
             build_term(g, t); pages += 1
             for s in g['subjects']:
                 build_subject(g, t, s); pages += 1
-    write('pdf/README.md', PDF_README)
-    write('assets/img/subjects/README.txt',
-          'لتبديل غلاف أي مادة بصورة حقيقية: (1) ضع صورة JPG هنا باسم المادة، مثال: chemistry.jpg\n'
-          '(2) أضف اسم المادة إلى covers في ملف data/content.js، مثال: covers: [\'chemistry\']\n'
-          'أسماء الملفات: ' + ' ، '.join(f'{k}.jpg' for k in SUBJ) + '\n')
-    print(f'تم إنشاء {pages} صفحة، و{sum(len(g["subjects"]) for g in GRADES) * 2} فولدر مادة داخل pdf/')
+    print(f'تم إنشاء {pages} صفحة - الكتب الآن من R2: {PDF_BASE}')
 
 
 if __name__ == '__main__':

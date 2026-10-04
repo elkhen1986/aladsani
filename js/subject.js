@@ -8,11 +8,72 @@
   };
   var panel = document.getElementById('panel');
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
-  var LABEL = { book: 'كتاب الطالب', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+  var isEnglish = /english|انجليز/i.test(D.subject) || /english|انجليز/i.test(D.title);
+  var isArabic = /arabic|عربي/i.test(D.subject) || /عربي/i.test(D.title);
+  var isMathStats = /math|رياض|إحصاء|احصاء|stat/i.test(D.subject) || /رياض|إحصاء|احصاء/i.test(D.title);
+  var isSenior = /^(11|12)$/.test(String(D.grade)) || /حادي عشر|ثاني عشر|11|12/.test(String(D.grade));
+  var isMathSenior = isMathStats && isSenior;
+  var isChem = /chem|كيميا|كيمياء/i.test(D.subject) || /كيميا|كيمياء/i.test(D.title);
+  var isPhys = /phys|فيزيا|فيزياء/i.test(D.subject) || /فيزيا|فيزياء/i.test(D.title);
+  var isBio = /bio|احياء|أحياء|biology/i.test(D.subject) || /احياء|أحياء|biology/i.test(D.title);
+  var isGeo = /geo|جيولوجيا/i.test(D.subject) || /جيولوجيا/i.test(D.title);
+  var isScience = isChem || isPhys || isBio || isGeo;
+  var isScienceSenior = isScience && isSenior;
+  var LABEL;
+  if(isEnglish){
+    LABEL = { book: "Student's Book", workbook: 'Workbook', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+  } else if(isArabic){
+    LABEL = { book: 'كتاب الطالب', nahw: 'قواعد النحو والصرف', balagha: 'فنون البلاغة', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+  } else if(isMathSenior){
+    LABEL = { book: 'كتاب الطالب', exercises: 'كتاب التمارين', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+  } else if(isScienceSenior){
+    LABEL = { book: 'كتاب الطالب', applications: 'كراسة التطبيقات', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+  } else {
+    LABEL = { book: 'كتاب الطالب', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+  }
   var local = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
   var st = { admin: false, preview: false, files: null }, seq = 0;
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var SPIN = '<div class="state"><div class="spin"></div></div>';
+
+
+  /* ---------- إضافة التبويبات تلقائياً حسب المادة ---------- */
+  (function injectTabs(){
+    var tabsBar = document.getElementById('tabs-bar') || document.querySelector('.tabs');
+    if(!tabsBar) return;
+    
+    function addTabIfMissing(id, label, afterId){
+      if(tabsBar.querySelector('[data-tab="'+id+'"]')) return;
+      var after = afterId ? tabsBar.querySelector('[data-tab="'+afterId+'"]') : null;
+      var btn = document.createElement('button');
+      btn.className = 'tab';
+      btn.setAttribute('data-tab', id);
+      btn.textContent = label;
+      if(after) after.insertAdjacentElement('afterend', btn);
+      else tabsBar.appendChild(btn);
+      btn.addEventListener('click', function(){ show(id, true); });
+    }
+
+    if(isEnglish){
+      addTabIfMissing('workbook', 'Workbook', 'book');
+      var bookBtn = tabsBar.querySelector('[data-tab="book"]');
+      if(bookBtn) bookBtn.textContent = "Student's Book";
+    }
+    if(isArabic){
+      addTabIfMissing('nahw', 'قواعد النحو والصرف', 'book');
+      addTabIfMissing('balagha', 'فنون البلاغة', 'nahw');
+    }
+    if(isMathSenior){
+      addTabIfMissing('exercises', 'كتاب التمارين', 'book');
+    }
+    if(isScienceSenior){
+      addTabIfMissing('applications', 'كراسة التطبيقات', 'book');
+    }
+    // تحديث قائمة التبويبات
+    tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  })();
+
+
 
   /* هل المستخدم مشرف؟ محلياً (بدون API) تُفعَّل المعاينة التجريبية */
   var ready = (async function () {
@@ -27,7 +88,8 @@
   async function exists(url) { try { return (await fetch(url, { method: 'HEAD' })).ok; } catch (e) { return null; } }
   async function showStatic(tab, my) {
     panel.innerHTML = SPIN;
-    var url = D.pdf + (tab === 'book' ? 'book.pdf' : 'qbank.pdf'), ok = await exists(url);
+    var fileName = tab === 'book' ? 'book.pdf' : tab === 'workbook' ? 'workbook.pdf' : tab === 'nahw' ? 'nahw.pdf' : tab === 'balagha' ? 'balagha.pdf' : tab === 'exercises' ? 'exercises.pdf' : tab === 'applications' ? 'applications.pdf' : 'qbank.pdf';
+    var url = D.pdf + fileName, ok = await exists(url);
     if (my !== seq) return;
     if (ok === false) {
       panel.innerHTML = '<div class="state"><div class="ico">📂</div><h3>لم يُرفع ' + LABEL[tab] + ' بعد</h3><p>سيظهر هنا فور إضافة الملف.</p></div>';
@@ -68,7 +130,7 @@
     var h = '';
     if (st.preview) h += '<div class="note">معاينة محلية: الرفع هنا تجريبي ولا يُحفظ. بعد النشر على Vercel وتسجيل دخول المشرف يُحفظ الملف فعلياً.</div>';
     h += items.map(card).join('');
-    if (!items.length) h += '<div class="state" style="min-height:170px"><div class="ico">🗂️</div><h3>لا توجد ملفات بعد</h3><p>ستظهر الملفات هنا فور إضافتها.</p></div>';
+    if (!items.length) h += '<div class="state" style="min-height:170px"><div class="ico">🗂</div><h3>لا توجد ملفات بعد</h3><p>ستظهر الملفات هنا فور إضافتها.</p></div>';
     if (st.admin) h += '<button type="button" class="add-card" data-act="add"><span class="plus">+</span>إضافة ملف جديد</button>';
     panel.innerHTML = '<div class="p-scroll"><div class="files">' + h + '</div></div>';
     panel.querySelector('.files').onclick = function (e) {
@@ -168,9 +230,15 @@
     var my = ++seq;
     tabs.forEach(function (t) { var on = t.getAttribute('data-tab') === tab; t.classList.toggle('is-active', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
     if (push) history.replaceState(null, '', '#' + tab);
-    if (tab === 'book' || tab === 'qbank') showStatic(tab, my); else showList(tab, my);
+    if (['book','workbook','nahw','balagha','exercises','applications','qbank'].indexOf(tab) > -1) showStatic(tab, my); else showList(tab, my);
   }
   tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.getAttribute('data-tab'), true); }); });
+  // إخفاء تبويب Workbook لو المادة مش إنجليزي (اختياري - لو عايزه لكل المواد شيل الشرط ده)
+  if(!isEnglish){
+    var wbTab = document.querySelector('[data-tab="workbook"]');
+    if(wbTab) wbTab.style.display = 'none';
+  }
   var h = location.hash.slice(1);
-  show(['book', 'qbank', 'quizzes', 'exams'].indexOf(h) > -1 ? h : 'book');
+  var allTabs = isArabic ? ['book','nahw','balagha','qbank','quizzes','exams'] : isEnglish ? ['book','workbook','qbank','quizzes','exams'] : isMathSenior ? ['book','exercises','qbank','quizzes','exams'] : isScienceSenior ? ['book','applications','qbank','quizzes','exams'] : ['book','qbank','quizzes','exams'];
+  show(allTabs.indexOf(h) > -1 ? h : 'book');
 })();

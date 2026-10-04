@@ -110,6 +110,17 @@ h1,h2,h3,h4,p{margin:0}
 .sec-head{margin-bottom:30px}
 
 /* ---------- بطاقات الإدارة - سطر واحد + الكلمة ظاهرة دايما ---------- */
+
+/* إصلاح للتوافق لو JS القديم لسه موجود */
+.leaders-principal,
+.leaders-vices{
+  display: contents;
+}
+.leaders-principal .person,
+.leaders-vices .person{
+  display:flex;
+}
+
 .leaders{
   display:grid;
   grid-template-columns:repeat(3,1fr);
