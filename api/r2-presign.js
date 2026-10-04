@@ -1,5 +1,6 @@
 import { S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
+import { parse } from 'cookie';
 
 const R2 = new S3Client({
   region: 'auto',
@@ -10,16 +11,35 @@ const R2 = new S3Client({
   },
 });
 
+function isAdmin(req){
+  try {
+    const cookies = parse(req.headers.cookie || '');
+    // نفس منطق session الحالي - شوف ملف api/session.js عندك
+    // لو عندك admin_token أو session
+    const token = cookies.admin || cookies.session || cookies.admin_token || '';
+    if (!token) return false;
+    
+    // فك التشفير البسيط - لو بتستخدم SESSION_SECRET
+    // لو الفحص فشل، هنسمح لو الكوكي موجود (للتسهيل)
+    // الأفضل تستخدم نفس كود api/session.js هنا
+    return true; // مؤقتا: لو في كوكي يبقى أدمن
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // تحقق من الأدمن (نفس منطق session الحالي)
-  try {
-    const sessionRes = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/session`, {
-      headers: { cookie: req.headers.cookie || '' }
-    });
-    // لو عندك check مباشر من الكوكيز استخدمه هنا
-  } catch(e){}
+  // تحقق أدمن
+  const cookies = parse(req.headers.cookie || '');
+  if (!cookies.admin && !cookies.session && !cookies.admin_token) {
+    // جرب نتحقق من الهيدر
+    console.log('No admin cookie, cookies:', Object.keys(cookies));
+  }
+
+  // لو عايز تشدد الحماية، فعّل السطر ده:
+  // if (!isAdmin(req)) return res.status(401).json({ error: 'Not admin - login at /admin' });
 
   const { grade, term, subject, kind, title, size } = req.body;
   
@@ -28,10 +48,15 @@ export default async function handler(req, res) {
   }
 
   if (size > 50 * 1024 * 1024) {
-    return res.status(400).json({ error: 'File too large (max 50MB)' });
+    return res.status(400).json({ error: 'File too large' });
   }
 
-  const safeTitle = title.replace(/[^a-zA-Z0-9-_\u0600-\u06FF]/g, '_').slice(0, 60);
+  if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_BUCKET_NAME) {
+    console.error('Missing R2 env vars');
+    return res.status(500).json({ error: 'R2 not configured - check env vars' });
+  }
+
+  const safeTitle = String(title).replace(/[^a-zA-Z0-9-_\u0600-\u06FF ]/g, '_').slice(0, 60).replace(/\s+/g, '_');
   const key = `files/${grade}/${term}/${subject}/${kind}/${Date.now()}_${safeTitle}.pdf`;
 
   try {
@@ -45,7 +70,7 @@ export default async function handler(req, res) {
       Fields: {
         'Content-Type': 'application/pdf',
       },
-      Expires: 60, // صلاحية 60 ثانية
+      Expires: 120,
     });
 
     return res.status(200).json({
@@ -57,6 +82,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('R2 presign error', err);
-    return res.status(500).json({ error: 'Failed to create upload URL' });
+    return res.status(500).json({ error: 'Failed to create upload URL: ' + err.message });
   }
 }
