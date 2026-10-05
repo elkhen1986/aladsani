@@ -1,6 +1,4 @@
-/* صفحة المادة: 4 تبويبات
-   - كتاب الطالب / بنك الأسئلة: ملف PDF واحد يُعرض مباشرة (pdf/<الصف>/<الفترة>/<المادة>/book.pdf و qbank.pdf)
-   - اختبارات قصيرة / اختبارات نهاية الفترة: قائمة ملفات (عرض + تحميل)، والمشرف يضيف ويحذف */
+/* صفحة المادة: مع تبويب أوراق عمل الجديد */
 (function () {
   var M = document.getElementById('subject'), D = {
     grade: M.getAttribute('data-grade'), term: M.getAttribute('data-term'), subject: M.getAttribute('data-subject'),
@@ -22,25 +20,24 @@
   var isScienceSenior = isScience && isSenior;
   var LABEL;
   if(isEnglish){
-    LABEL = { book: "Student's Book", workbook: 'Workbook', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+    LABEL = { book: "Student's Book", workbook: 'Workbook', qbank: 'بنك الأسئلة', worksheets: 'أوراق عمل', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
   } else if(isArabic){
     if(isGrade12){
-      LABEL = { book: 'كتاب الطالب', nahw: 'قواعد النحو والصرف', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+      LABEL = { book: 'كتاب الطالب', nahw: 'قواعد النحو والصرف', qbank: 'بنك الأسئلة', worksheets: 'أوراق عمل', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
     } else {
-      LABEL = { book: 'كتاب الطالب', nahw: 'قواعد النحو والصرف', balagha: 'فنون البلاغة', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+      LABEL = { book: 'كتاب الطالب', nahw: 'قواعد النحو والصرف', balagha: 'فنون البلاغة', qbank: 'بنك الأسئلة', worksheets: 'أوراق عمل', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
     }
   } else if(isMathSenior){
-    LABEL = { book: 'كتاب الطالب', exercises: 'كتاب التمارين', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+    LABEL = { book: 'كتاب الطالب', exercises: 'كتاب التمارين', qbank: 'بنك الأسئلة', worksheets: 'أوراق عمل', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
   } else if(isScienceSenior){
-    LABEL = { book: 'كتاب الطالب', applications: 'كراسة التطبيقات', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+    LABEL = { book: 'كتاب الطالب', applications: 'كراسة التطبيقات', qbank: 'بنك الأسئلة', worksheets: 'أوراق عمل', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
   } else {
-    LABEL = { book: 'كتاب الطالب', qbank: 'بنك الأسئلة', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
+    LABEL = { book: 'كتاب الطالب', qbank: 'بنك الأسئلة', worksheets: 'أوراق عمل', quizzes: 'اختبارات قصيرة', exams: 'اختبارات نهاية الفترة' };
   }
   var local = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
   var st = { admin: false, preview: false, files: null }, seq = 0;
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var SPIN = '<div class="state"><div class="spin"></div></div>';
-
 
   /* ---------- إضافة التبويبات تلقائياً حسب المادة ---------- */
   (function injectTabs(){
@@ -79,10 +76,12 @@
     if(isScienceSenior){
       addTabIfMissing('applications', 'كراسة التطبيقات', 'book');
     }
+    // أوراق عمل - لكل المواد
+    addTabIfMissing('worksheets', 'أوراق عمل', 'qbank');
+    
     tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
   })();
 
-  /* هل المستخدم مشرف؟ محلياً (بدون API) تُفعَّل المعاينة التجريبية */
   var ready = (async function () {
     try {
       var r = await fetch('/api/session', { credentials: 'same-origin', cache: 'no-store' });
@@ -91,7 +90,6 @@
     } catch (e) { if (local) { st.preview = true; st.admin = true; } }
   })();
 
-  /* ---------- تبويبا الملف الواحد ---------- */
   async function exists(url) { try { return (await fetch(url, { method: 'HEAD' })).ok; } catch (e) { return null; } }
   async function showStatic(tab, my) {
     panel.innerHTML = SPIN;
@@ -106,7 +104,6 @@
     Viewer.mount(panel.firstChild, { url: url, name: D.title + ' - ' + LABEL[tab] });
   }
 
-  /* ---------- تبويبا القوائم ---------- */
   function fmtSize(n) { return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round((n || 0) / 1024)) + ' KB'; }
   function fmtDate(t) { try { return new Date(t).toLocaleDateString('ar-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' }); } catch (e) { return ''; } }
   async function loadFiles() {
@@ -168,22 +165,13 @@
     } catch (e) { toast('تعذّر الحذف، حاول مرة أخرى'); }
   }
 
-  /* ---------- نافذة إضافة ملف جديد (للمشرف فقط) ---------- */
   var modal, file, curKind;
-  function b64u(s) {
-    var bin = ''; new TextEncoder().encode(s).forEach(function (b) { bin += String.fromCharCode(b); });
-    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-
-  // ====== النسخة المصلحة: رفع عبر Proxy بدلاً من presigned POST (يحل مشكلة CORS) ======
   async function send(kind, title, f, onp) {
     var item = { grade: D.grade, term: D.term, subject: D.subject, kind: kind, title: title, size: f.size, uploadedAt: new Date().toISOString() };
     if (st.preview) {
       for (var i = 1; i <= 10; i++) { await new Promise(function (r) { setTimeout(r, 70); }); onp(i * 10); }
       item.url = URL.createObjectURL(f); return item;
     }
-
-    // رفع عبر /api/upload-r2 (Proxy) - يتجاوز CORS وحد 4.5MB
     var formData = new FormData();
     formData.append('grade', D.grade);
     formData.append('term', D.term);
@@ -191,7 +179,6 @@
     formData.append('kind', kind);
     formData.append('title', title);
     formData.append('file', f);
-
     var xhr = new XMLHttpRequest();
     var uploadPromise = new Promise(function(resolve, reject){
       xhr.upload.onprogress = function(e){
@@ -216,12 +203,10 @@
       };
       xhr.onerror = function(){ reject(new Error('Network error - تأكد من تسجيل الدخول')); };
     });
-
     xhr.open('POST', '/api/upload-r2');
     xhr.withCredentials = true;
     xhr.send(formData);
     var resp = await uploadPromise;
-
     item.url = resp.url;
     item.key = resp.key;
     item.publicUrl = resp.publicUrl || resp.url;
@@ -232,7 +217,7 @@
     modal = document.createElement('div'); modal.className = 'modal';
     modal.innerHTML = '<div class="m-box" role="dialog" aria-modal="true" aria-labelledby="upT"><button type="button" class="m-x" aria-label="إغلاق">✕</button>' +
       '<h3 id="upT">إضافة ملف جديد</h3>' +
-      '<label class="field">اسم الملف<input type="text" id="upName" maxlength="80" placeholder="مثال: اختبار الوحدة الأولى"></label>' +
+      '<label class="field">اسم الملف<input type="text" id="upName" maxlength="80" placeholder="مثال: ورقة عمل الوحدة الأولى"></label>' +
       '<div class="drop" id="upDrop" tabindex="0" role="button">اضغط لاختيار ملف PDF أو اسحبه إلى هنا<input type="file" id="upFile" accept="application/pdf,.pdf" hidden></div>' +
       '<div class="bar" id="upBar"><i></i></div><p class="err" id="upErr" role="alert"></p>' +
       '<div class="m-act"><button type="button" class="btn btn-navy" id="upGo">رفع الملف</button><button type="button" class="btn btn-ghost" data-x>إلغاء</button></div></div>';
@@ -277,7 +262,6 @@
     modal.querySelector('#upName').focus();
   }
 
-  /* ---------- التبويبات ---------- */
   function show(tab, push) {
     var my = ++seq;
     tabs.forEach(function (t) { var on = t.getAttribute('data-tab') === tab; t.classList.toggle('is-active', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
@@ -294,6 +278,6 @@
     if(balaghaTabFinal) balaghaTabFinal.remove();
   }
   var h = location.hash.slice(1);
-  var allTabs = isArabic ? (isGrade12 ? ['book','nahw','qbank','quizzes','exams'] : ['book','nahw','balagha','qbank','quizzes','exams']) : isEnglish ? ['book','workbook','qbank','quizzes','exams'] : isMathSenior ? ['book','exercises','qbank','quizzes','exams'] : isScienceSenior ? ['book','applications','qbank','quizzes','exams'] : ['book','qbank','quizzes','exams'];
+  var allTabs = isArabic ? (isGrade12 ? ['book','nahw','qbank','worksheets','quizzes','exams'] : ['book','nahw','balagha','qbank','worksheets','quizzes','exams']) : isEnglish ? ['book','workbook','qbank','worksheets','quizzes','exams'] : isMathSenior ? ['book','exercises','qbank','worksheets','quizzes','exams'] : isScienceSenior ? ['book','applications','qbank','worksheets','quizzes','exams'] : ['book','qbank','worksheets','quizzes','exams'];
   show(allTabs.indexOf(h) > -1 ? h : 'book');
 })();

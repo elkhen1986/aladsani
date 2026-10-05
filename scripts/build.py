@@ -98,6 +98,7 @@ def get_tabs_html(grade_slug, subject_slug):
             ('book', "Student's Book"),
             ('workbook', 'Workbook'),
             ('qbank', 'بنك الأسئلة'),
+            ('worksheets', 'أوراق عمل'),
             ('quizzes', 'اختبارات قصيرة'),
             ('exams', 'اختبارات نهاية الفترة')
         ]
@@ -107,6 +108,7 @@ def get_tabs_html(grade_slug, subject_slug):
                 ('book', 'كتاب الطالب'),
                 ('nahw', 'قواعد النحو والصرف'),
                 ('qbank', 'بنك الأسئلة'),
+                ('worksheets', 'أوراق عمل'),
                 ('quizzes', 'اختبارات قصيرة'),
                 ('exams', 'اختبارات نهاية الفترة')
             ]
@@ -116,6 +118,7 @@ def get_tabs_html(grade_slug, subject_slug):
                 ('nahw', 'قواعد النحو والصرف'),
                 ('balagha', 'فنون البلاغة'),
                 ('qbank', 'بنك الأسئلة'),
+                ('worksheets', 'أوراق عمل'),
                 ('quizzes', 'اختبارات قصيرة'),
                 ('exams', 'اختبارات نهاية الفترة')
             ]
@@ -124,6 +127,7 @@ def get_tabs_html(grade_slug, subject_slug):
             ('book', 'كتاب الطالب'),
             ('exercises', 'كتاب التمارين'),
             ('qbank', 'بنك الأسئلة'),
+            ('worksheets', 'أوراق عمل'),
             ('quizzes', 'اختبارات قصيرة'),
             ('exams', 'اختبارات نهاية الفترة')
         ]
@@ -132,6 +136,7 @@ def get_tabs_html(grade_slug, subject_slug):
             ('book', 'كتاب الطالب'),
             ('applications', 'كراسة التطبيقات'),
             ('qbank', 'بنك الأسئلة'),
+            ('worksheets', 'أوراق عمل'),
             ('quizzes', 'اختبارات قصيرة'),
             ('exams', 'اختبارات نهاية الفترة')
         ]
@@ -139,6 +144,7 @@ def get_tabs_html(grade_slug, subject_slug):
         tabs = [
             ('book', 'كتاب الطالب'),
             ('qbank', 'بنك الأسئلة'),
+            ('worksheets', 'أوراق عمل'),
             ('quizzes', 'اختبارات قصيرة'),
             ('exams', 'اختبارات نهاية الفترة')
         ]
@@ -170,9 +176,9 @@ HOME = '''<main>
 <section class="honor" aria-labelledby="t-honor"><div class="wrap">
   <div class="sec-head"><h2 class="sec-title" id="t-honor">لوحة شرف الفائقين</h2></div>
   <div class="car">
-    <button type="button" class="arrow prev" id="prev" aria-label="السابق">‹</button>
+    <button type="button" class="arrow prev" id="prev" aria-label="السابق">›</button>
     <div class="track" id="track"></div>
-    <button type="button" class="arrow next" id="next" aria-label="التالي">›</button>
+    <button type="button" class="arrow next" id="next" aria-label="التالي">‹</button>
   </div>
 </div></section>
 <section class="section wrap"><div class="about">
