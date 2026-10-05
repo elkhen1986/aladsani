@@ -30,7 +30,6 @@ function parseMultipart(buffer, boundary) {
     
     const headers = part.substring(0, headerEnd);
     let content = part.substring(headerEnd + 4);
-    // Remove trailing \r\n
     if (content.endsWith('\r\n')) content = content.slice(0, -2);
     
     const nameMatch = headers.match(/name="([^"]+)"/);
@@ -41,10 +40,14 @@ function parseMultipart(buffer, boundary) {
     
     if (filenameMatch) {
       result.fileName = filenameMatch[1];
-      // file content as binary -> buffer
       result.file = Buffer.from(content, 'binary');
     } else {
-      result.fields[fieldName] = content;
+      // FIX: فك تشفير UTF-8 للعربي
+      try {
+        result.fields[fieldName] = Buffer.from(content, 'binary').toString('utf8').trim();
+      } catch(e) {
+        result.fields[fieldName] = content.trim();
+      }
     }
   }
   return result;
@@ -73,9 +76,14 @@ export default async function handler(req, res) {
     const term = fields.term || 'term1';
     const subject = fields.subject || 'general';
     const kind = fields.kind || 'quizzes';
-    const title = fields.title || 'file';
+    const title = fields.title || file ? 'file' : 'ملف بدون عنوان';
 
-    const safeTitle = String(title).replace(/[^a-zA-Z0-9-_\u0600-\u06FF ]/g, '_').slice(0,60).replace(/\s+/g,'_');
+    // تنظيف الاسم - يسمح عربي + انجليزي + ارقام
+    let safeTitle = String(title).replace(/[^a-zA-Z0-9-_\u0600-\u06FF ]/g, '_').slice(0,80).replace(/\s+/g,'_').replace(/__+/g,'_').replace(/^_+|_+$/g,'');
+    if (!safeTitle || safeTitle.length < 2 || safeTitle.toLowerCase() === 'undefined') {
+      safeTitle = 'ملف_' + Date.now();
+    }
+
     const key = `files/${grade}/${term}/${subject}/${kind}/${Date.now()}_${safeTitle}.pdf`;
 
     await R2.send(new PutObjectCommand({
@@ -97,7 +105,7 @@ export default async function handler(req, res) {
     });
 
   } catch (e) {
-    console.error('Upload R2 proxy error', e);
+    console.error('Upload R2 error', e);
     return res.status(500).json({error: e.message});
   }
 }
