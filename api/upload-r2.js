@@ -72,11 +72,12 @@ export default async function handler(req, res) {
     
     if (!file) return res.status(400).json({error:'No file uploaded'});
 
-    const grade = fields.grade || 'unknown';
-    const term = fields.term || 'term1';
-    const subject = fields.subject || 'general';
-    const kind = fields.kind || 'quizzes';
-    const title = fields.title || file ? 'file' : 'ملف بدون عنوان';
+    const grade = (fields.grade || 'unknown').toString().trim();
+    const term = (fields.term || 'term1').toString().trim();
+    const subject = (fields.subject || 'general').toString().trim();
+    const kind = (fields.kind || 'quizzes').toString().trim();
+    let title = (fields.title || '').toString().trim();
+    if (!title || title.length < 2) title = 'ملف بدون عنوان';
 
     // تنظيف الاسم - يسمح عربي + انجليزي + ارقام
     let safeTitle = String(title).replace(/[^a-zA-Z0-9-_\u0600-\u06FF ]/g, '_').slice(0,80).replace(/\s+/g,'_').replace(/__+/g,'_').replace(/^_+|_+$/g,'');

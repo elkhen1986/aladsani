@@ -247,7 +247,12 @@
       err(''); go.disabled = true; bar.style.display = 'block'; bar.firstChild.style.width = '0%';
       try {
         var item = await send(curKind, title, file, function (p) { bar.firstChild.style.width = p + '%'; });
-        await loadFiles(); st.files.push(item);
+        // اجبار اعادة تحميل من R2 للتأكد ان الملف اتحفظ فعلا
+        st.files = null;
+        await loadFiles();
+        // لو الـ API رجع الملف الجديد، مش محتاج push
+        var exists = st.files.some(function(x){ return x.key === item.key || x.url === item.url; });
+        if (!exists) st.files.push(item);
         modal.classList.remove('open'); toast('تم رفع الملف بنجاح'); show(curKind);
       } catch (e) { 
         console.error(e);
