@@ -549,6 +549,40 @@ h1,h2,h3,h4,p{margin:0}
   max-width:100%;
 }
 
+
+/* ---------- تحكم الأدمن في الهيئة التعليمية ---------- */
+.admin-badge{
+  position:fixed; top:72px; left:50%; transform:translateX(-50%);
+  z-index:60; background:var(--navy); color:#fff; padding:8px 18px;
+  border-radius:999px; font-size:12px; font-weight:800;
+  display:flex; align-items:center; gap:8px; box-shadow:var(--sh-md);
+}
+.admin-badge .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+.head-admin{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.head-admin .btn{padding:6px 10px;font-size:11px}
+
+.t-card.is-admin{position:relative;padding-bottom:36px}
+.t-actions{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px}
+.t-actions button{
+  width:26px;height:26px;border-radius:50%;background:#eef2f9;border:1px solid var(--line);
+  display:grid;place-items:center;font-size:12px;cursor:pointer;transition:all .2s
+}
+.t-actions button:hover{background:var(--navy);color:#fff}
+.t-actions button.del:hover{background:#c62f2f;color:#fff}
+
+.add-teacher{
+  grid-column:1/-1; display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px;border:2px dashed #c4cde0;border-radius:16px;background:rgba(255,255,255,.6);
+  color:var(--navy);font-weight:800;cursor:pointer;transition:all .2s
+}
+.add-teacher:hover{border-color:var(--gold);background:#fffbea}
+.add-teacher .plus{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:18px}
+
+.field textarea{resize:vertical;min-height:80px}
+
+
 /* ---------- صفحة دخول المشرف + 404 ---------- */
 .center-box{min-height:calc(100vh - var(--hdr) - var(--ftr));min-height:calc(100dvh - var(--hdr) - var(--ftr));display:grid;place-items:center;padding:30px 20px}
 .a-card{width:min(440px,100%);padding:36px;background:#fff;border:1px solid var(--line);border-radius:30px;box-shadow:var(--sh-lg);text-align:center}
