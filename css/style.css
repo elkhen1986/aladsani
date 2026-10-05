@@ -358,27 +358,34 @@ h1,h2,h3,h4,p{margin:0}
 .toast{position:fixed;inset-inline:0;bottom:calc(var(--ftr) + 18px);margin-inline:auto;width:max-content;max-width:90vw;background:var(--navy);color:#fff;padding:12px 24px;border-radius:999px;font-weight:700;font-size:14px;box-shadow:var(--sh-lg);z-index:120;opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .3s,transform .3s}
 .toast.show{opacity:1;transform:none}
 
-/* ---------- الهيئة التعليمية ---------- */
+/* ---------- الهيئة التعليمية - التعديل المطلوب فقط: رئيس ثلث والمعلمين ثلثين ---------- */
 .lead-row{display:grid;gap:24px;padding-block:52px 28px}
 .lead-row .main-p{order:-1}
 @media(min-width:900px){.lead-row{grid-template-columns:1fr 1.12fr 1fr;align-items:start}.lead-row .main-p{order:0}.lead-row .side{margin-top:64px}}
 .main-p{border-color:rgba(201,162,39,.7);box-shadow:var(--sh-md)}
+
 .dept{padding-block:34px}
 .dept-title{display:flex;align-items:center;gap:12px;margin-bottom:20px;font-size:24px;font-weight:900;color:var(--navy)}
 .dept-title::before{content:"";width:6px;height:28px;border-radius:6px;background:var(--gold)}
-.dept-grid{display:grid;gap:22px}
+
+.dept-grid{display:grid;gap:22px; align-items:start;}
 @media(min-width:1000px){
   .dept-grid{
-    grid-template-columns:3fr 1fr; /* المعلمين 75% - رئيس القسم 25% ربع الصفحة */
-    align-items:start;
+    /* رئيس القسم ثلث (1fr) والمعلمين ثلثين (2fr) - رئيس على اليمين في RTL */
+    grid-template-columns: 1fr 2fr;
   }
+  /* تثبيت الترتيب: رئيس القسم عمود 1 (يمين)، المعلمين عمود 2 (شمال) */
+  .dept-grid .head-card{grid-column:1}
+  .dept-grid .teachers{grid-column:2}
 }
-/* بطاقة رئيس القسم - ربع العرض وارتفاع صفين ثابت - نسخة محسنة */
+
+/* بطاقة رئيس القسم - البيانات في آخر البطاقة عشان الصورة تظهر كاملة */
 .head-card{
-  display:flex;
-  flex-direction:column;
+  position:relative;
+  display:block;
   min-height:360px;
   max-height:360px;
+  height:360px;
   background:#fff;
   border:1px solid var(--line);
   border-radius:24px;
@@ -388,9 +395,11 @@ h1,h2,h3,h4,p{margin:0}
   top:90px;
 }
 .head-card .hm{
-  position:relative;
-  height:200px;
-  flex:0 0 200px;
+  position:absolute;
+  inset:0;
+  height:100%;
+  width:100%;
+  flex:none;
   overflow:hidden;
   background:linear-gradient(180deg,#0d2a54 0%,#1a4a8a 100%);
 }
@@ -406,22 +415,26 @@ h1,h2,h3,h4,p{margin:0}
   content:"";
   position:absolute;
   inset:0;
-  background:linear-gradient(to bottom,rgba(13,42,84,0) 20%,rgba(255,255,255,0) 50%,#fff 100%);
+  background: linear-gradient(to bottom, rgba(13,42,84,0) 0%, rgba(13,42,84,0) 35%, rgba(13,42,84,.18) 55%, rgba(255,255,255,.90) 78%, #fff 96%);
 }
 .head-card .hb{
-  padding:18px 16px;
-  flex:1;
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  top:auto;
+  flex:none;
+  background: transparent;
+  padding: 56px 16px 16px;
   display:flex;
   flex-direction:column;
-  justify-content:flex-start;
-  gap:6px;
+  justify-content:flex-end;
+  gap:5px;
   text-align:center;
+  z-index:2;
 }
 .head-card .hb .badge{
-  align-self:center;
-  margin-bottom:4px;
-  font-size:11px;
-  padding:4px 12px;
+  display:none !important;
 }
 .head-card h3{
   font-size:16px;
@@ -442,16 +455,39 @@ h1,h2,h3,h4,p{margin:0}
   margin:0;
 }
 @media(max-width:1000px){
-  .head-card{min-height:auto;max-height:none;height:auto;position:static;flex-direction:row;align-items:center}
-  .head-card .hm{height:110px;flex:0 0 110px;width:110px;border-radius:18px;margin:12px}
-  .head-card .hm::after{display:none}
-  .head-card .hb{text-align:start;align-items:flex-start}
-  .head-card .hb .badge{align-self:flex-start}
+  .head-card{
+    min-height:auto !important;
+    max-height:none !important;
+    height:auto !important;
+    position:static !important;
+    display:flex !important;
+    flex-direction:row !important;
+    align-items:center !important;
+  }
+  .head-card .hm{
+    position:relative !important;
+    height:110px !important;
+    flex:0 0 110px !important;
+    width:110px !important;
+    border-radius:18px !important;
+    margin:12px !important;
+    inset:auto !important;
+  }
+  .head-card .hm::after{display:none !important}
+  .head-card .hb{
+    position:static !important;
+    text-align:start !important;
+    align-items:flex-start !important;
+    padding:12px !important;
+    background:transparent !important;
+  }
+  .head-card .hb .badge{align-self:flex-start !important}
 }
-/* شبكة المعلمين - 4 في الصف مع تحسين عرض الأسماء */
+
+/* شبكة المعلمين - 3 في الصف لتناسب ثلثين */
 .teachers{
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-columns:repeat(3,minmax(0,1fr));
   gap:14px;
   align-content:start;
   align-items:start;
@@ -459,6 +495,7 @@ h1,h2,h3,h4,p{margin:0}
 @media(max-width:1250px){.teachers{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:900px){.teachers{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:580px){.teachers{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+
 .t-card{
   text-align:center;
   background:#fff;
@@ -470,8 +507,13 @@ h1,h2,h3,h4,p{margin:0}
   flex-direction:column;
   align-items:center;
   min-height:148px;
+  cursor:pointer;
 }
 .t-card:hover{transform:translateY(-3px);box-shadow:var(--sh-md);border-color:rgba(201,162,39,.4)}
+.t-card:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.t-card .t-img{width:68px;height:68px;border-radius:50%;overflow:hidden;border:3px solid var(--gold-2);flex:0 0 68px;margin-bottom:10px;display:grid;place-items:center;background:#eef2f9;font-size:28px;color:var(--muted)}
+.t-card .t-img img{width:100%;height:100%;object-fit:cover;border:0;display:block}
+.t-lb{max-width:420px}
 .t-card img{
   width:68px;
   height:68px;
