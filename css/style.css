@@ -301,39 +301,39 @@ h1,h2,h3,h4,p{margin:0}
 .pdf-page{background:#fff;box-shadow:var(--sh-sm);max-width:100%;overflow:hidden}
 .pdf-page canvas{width:100%;height:100%;display:block}
 
-/* ---------- قوائم الملفات (اختبارات قصيرة / نهاية الفترة) ---------- */
+/* ---------- قوائم الملفات (اختبارات قصيرة / نهاية الفترة) - FIX V3 ---------- */
 .files{max-width:900px;margin:0 auto;padding:28px 20px 44px;display:grid;gap:14px}
-.f-card{display:flex;align-items:center;gap:16px;padding:16px 20px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh-sm);transition:border-color .25s,box-shadow .25s}
+.f-card{display:flex;align-items:center;gap:16px;padding:16px 20px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh-sm);transition:border-color .25s,box-shadow .25s;min-width:0}
 .f-card:hover{border-color:rgba(201,162,39,.7);box-shadow:var(--sh-md)}
 .f-ico{flex:0 0 52px;height:52px;border-radius:14px;display:grid;place-items:center;background:#fdecec;color:#d23b3b;font-weight:900;font-size:13px}
-.f-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
-.f-info h4{font-size:16px;font-weight:800;color:var(--navy);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;min-height:22px}
-.f-meta{display:flex;gap:14px;font-size:12.5px;color:var(--muted)}
+.f-info{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.f-info h4{font-size:16px !important;font-weight:800 !important;color:var(--navy) !important;line-height:1.5 !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:ellipsis !important;display:block !important;visibility:visible !important;opacity:1 !important;min-width:0;max-width:100%}
+.f-meta{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
 .f-act{display:flex;gap:8px;flex:0 0 auto}
 .add-card{display:grid;justify-items:center;gap:8px;padding:26px;border:2px dashed #c4cde0;border-radius:20px;background:rgba(255,255,255,.65);color:var(--navy);font-weight:800;transition:border-color .25s,background .25s}
 .add-card:hover{border-color:var(--gold);background:#fffbea}
 .add-card .plus{width:46px;height:46px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:26px;line-height:1}
 .note{padding:10px 16px;border-radius:14px;background:#fffbea;border:1px solid rgba(201,162,39,.4);color:var(--gold-ink);font-size:13px;font-weight:700}
-/* ---------- إصلاح كروت الملفات على الموبايل - إظهار الاسم فقط بدون تاريخ وحجم ---------- */
+/* ---------- موبايل: الاسم فقط بدون تاريخ وحجم - FIX V3 ---------- */
 @media(max-width:640px){
   .f-card{flex-wrap:wrap;gap:12px;padding:14px 16px;align-items:flex-start}
   .f-ico{flex:0 0 44px;height:44px;border-radius:12px;font-size:11px}
-  .f-info{flex:1;min-width:0;order:1}
+  .f-info{flex:1 1 calc(100% - 60px);min-width:0;order:0}
   .f-info h4{
-    white-space:normal;
-    overflow:hidden;
-    text-overflow:clip;
-    display:-webkit-box;
-    -webkit-line-clamp:2;
-    -webkit-box-orient:vertical;
-    line-clamp:2;
-    font-size:15px;
-    line-height:1.4;
-    font-weight:800;
-    word-break:break-word;
+    white-space:normal !important;
+    overflow:hidden !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2 !important;
+    -webkit-box-orient:vertical !important;
+    line-clamp:2 !important;
+    font-size:15px !important;
+    line-height:1.4 !important;
+    font-weight:800 !important;
+    word-break:break-word !important;
+    text-overflow:clip !important;
   }
   .f-meta{display:none !important}
-  .f-act{width:100%;order:2;gap:8px;margin-top:2px}
+  .f-act{width:100%;order:1;gap:8px;margin-top:4px;flex:0 0 100%}
   .f-act .btn{flex:1 1 0;padding:10px 12px;font-size:13px}
 }
 
