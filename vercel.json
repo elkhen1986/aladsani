@@ -8,5 +8,10 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/api/subjects", "destination": "/api/admin-data?type=subjects" },
+    { "source": "/api/tabs", "destination": "/api/admin-data?type=tabs" },
+    { "source": "/api/reorder", "destination": "/api/admin-data?type=orders" }
   ]
 }
