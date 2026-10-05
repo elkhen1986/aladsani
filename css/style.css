@@ -611,3 +611,29 @@ h1,h2,h3,h4,p{margin:0}
 .a-card form{text-align:start}
 .a-card .btn{width:100%;margin-top:18px}
 .err404{font-size:96px;font-weight:900;line-height:1;color:var(--gold)}
+
+
+/* === تحكم سحب وإفلات + مواد === */
+/* CSS إضافي للتحكم الكامل - سحب وإفلات + إدارة مواد وتبويبات */
+.files .draggable-card.dragging{opacity:.4;transform:scale(.95)}
+.files .draggable-card.drag-over{border:2px dashed var(--gold);background:#fffbea}
+.drag-handle{user-select:none;opacity:.4;transition:opacity .2s}
+.draggable-card:hover .drag-handle{opacity:1}
+.f-card{position:relative;transition:all .2s}
+.f-card.dragging{box-shadow:var(--sh-lg)}
+
+.subj{position:relative}
+.subj-admin{opacity:0;transition:opacity .2s}
+.subj:hover .subj-admin{opacity:1}
+
+#tabsManagerList .f-card{margin-bottom:8px}
+#tabsManagerList .f-card.drag-over{border-color:var(--gold);background:#fffbea}
+
+/* تبويبات قابلة للسحب */
+.tabs .tab{position:relative;transition:all .2s}
+.tabs .tab.dragging{opacity:.5}
+.tabs .tab.drag-over{outline:2px dashed var(--gold)}
+
+.admin-badge{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:60;background:var(--navy);color:#fff;padding:8px 18px;border-radius:999px;font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;box-shadow:var(--sh-md)}
+.admin-badge .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-مولّد صفحات منصة العدساني - الأصلي مع إضافة dialog.js ومربع الحوار الموحد
+مولّد صفحات منصة العدساني - مع تحكم كامل مواد + تبويبات + سحب وإفلات
 """
 import pathlib
 from html import escape
@@ -168,10 +168,6 @@ def get_tabs_html(grade_slug, subject_slug):
         f'<button type="button" class="tab" role="tab" data-tab="{k}">{v}</button>' for k, v in tabs
     )
 
-TAB_HTML = ''.join(
-    f'<button type="button" class="tab" role="tab" data-tab="{k}">{v}</button>' for k, v in
-    [('book', 'كتاب الطالب'), ('qbank', 'بنك الأسئلة'), ('quizzes', 'اختبارات قصيرة'), ('exams', 'اختبارات نهاية الفترة')])
-
 HOME = '''<main>
 <section class="hero"><div class="wrap">
   <div>
@@ -192,9 +188,9 @@ HOME = '''<main>
 <section class="honor" aria-labelledby="t-honor"><div class="wrap">
   <div class="sec-head"><h2 class="sec-title" id="t-honor">لوحة شرف الفائقين</h2></div>
   <div class="car">
-    <button type="button" class="arrow prev" id="prev" aria-label="السابق">›</button>
+    <button type="button" class="arrow prev" id="prev" aria-label="السابق">‹</button>
     <div class="track" id="track"></div>
-    <button type="button" class="arrow next" id="next" aria-label="التالي">‹</button>
+    <button type="button" class="arrow next" id="next" aria-label="التالي">›</button>
   </div>
 </div></section>
 <section class="section wrap"><div class="about">
@@ -209,7 +205,6 @@ def build_home():
     tiles = ''.join(
         f'<a class="tile" href="{s}/index.html" title="{full}" aria-label="{full}"><b>{n}</b><small>{lab}</small></a>'
         for s, n, lab, full in TILES)
-    # رجعنا التبويبات الأصلية + أضفنا dialog.js قبل home.js عشان مربع الحوار الموحد
     write('index.html', page('', f'منصة {SCHOOL} التعليمية 2026-2027',
           'منصة تعليمية متكاملة لطلبة مدرسة عبدالرزاق محمد صالح العدساني الثانوية بنين: كتب وبنوك أسئلة واختبارات.',
           'home', HOME.replace('%TILES%', tiles), ['js/dialog.js', 'data/content.js', 'js/home.js']))
@@ -230,6 +225,36 @@ def build_admin():
             '<div id="adminBox"></div></div></main>')
     write('admin/index.html', page('../', f'دخول المشرف | {SCHOOL}', 'دخول المشرف لإدارة الملفات.', '', body,
           ['js/admin.js'], '<meta name="robots" content="noindex">\n'))
+
+
+def build_admin_subjects():
+    body = '''<main class="wrap"><div style="max-width:1200px;margin:0 auto;padding:24px">
+<h1 style="font-weight:900;color:var(--navy)">إدارة المواد والتبويبات - تحكم كامل</h1>
+<p style="color:var(--muted);margin-top:6px">إضافة/تعديل/حذف مادة، تغيير صورتها، التحكم في التبويبات وترتيب الملفات بالسحب والإفلات.</p>
+<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+<a class="btn btn-ghost" href="../index.html">رجوع للإدارة</a>
+<button class="btn btn-gold" id="btnAdd">+ مادة جديدة</button>
+<button class="btn btn-navy" id="btnTabs">⚙️ إدارة التبويبات</button>
+</div>
+<div id="grades"></div>
+</div></main>'''
+    write('admin/subjects/index.html', page('../../', f'إدارة المواد | {SCHOOL}', 'إدارة المواد والصور', '', body,
+          ['js/dialog.js', 'js/admin-subjects.js'], '<meta name="robots" content="noindex">\n'))
+
+
+def build_admin_tabs():
+    body = '''<main class="wrap"><div style="max-width:1000px;margin:0 auto;padding:24px">
+<h1 style="font-weight:900;color:var(--navy)">إدارة التبويبات داخل المواد</h1>
+<p style="color:var(--muted);margin-top:6px">أضف تبويب جديد لكل مادة، غير اسمه، احذفه، وأعد ترتيبه بالسحب والإفلات.</p>
+<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+<select id="subjSelect" style="padding:10px 14px;border-radius:12px;border:1.5px solid var(--line)"></select>
+<button class="btn btn-navy" id="btnAddTab">+ تبويب جديد</button>
+<a class="btn btn-ghost" href="../subjects/index.html">إدارة المواد</a>
+</div>
+<div id="tabsList" style="display:grid;gap:12px;margin-top:16px"></div>
+</div></main>'''
+    write('admin/tabs/index.html', page('../../', f'إدارة التبويبات | {SCHOOL}', 'إدارة التبويبات', '', body,
+          ['js/dialog.js', 'js/admin-tabs.js'], '<meta name="robots" content="noindex">\n'))
 
 
 def build_404():
@@ -260,9 +285,9 @@ def build_term(g, t):
                   f'<div class="cover" aria-hidden="true"><span class="emo">{emoji}</span></div>'
                   f'<span class="badge">{g["badge"]}</span><h3>{name}</h3></a>')
     body = (crumbs([('الرئيسية', '../../index.html'), (g['crumb'], '../index.html'), (short, None)]) +
-            f'<main class="wrap"><div class="subjects">{cards}</div></main>')
+            f'<main class="wrap"><div class="subjects" id="subjectsGrid">{cards}</div></main>')
     write(f'{g["slug"]}/{slug}/index.html', page('../../', f'{short} | {g["name"]} | {SCHOOL}',
-          f'مواد {g["name"]} - {full}.', g['slug'], body, ['data/content.js', 'js/covers.js']))
+          f'مواد {g["name"]} - {full}.', g['slug'], body, ['js/dialog.js', 'data/content.js', 'js/covers.js']))
 
 
 def build_subject(g, t, s):
@@ -304,8 +329,8 @@ PDF_README = '''# ملفات الـPDF
 
 
 def main():
-    build_home(); build_staff(); build_admin(); build_404()
-    pages = 4
+    build_home(); build_staff(); build_admin(); build_admin_subjects(); build_admin_tabs(); build_404()
+    pages = 6
     for g in GRADES:
         build_grade(g); pages += 1
         for t in TERMS:
@@ -317,8 +342,7 @@ def main():
           'لتبديل غلاف أي مادة بصورة حقيقية: (1) ضع صورة JPG هنا باسم المادة، مثال: chemistry.jpg\n'
           '(2) أضف اسم المادة إلى covers في ملف data/content.js، مثال: covers: [\'chemistry\']\n'
           'أسماء الملفات: ' + ' ، '.join(f'{k}.jpg' for k in SUBJ) + '\n')
-    print(f'تم إنشاء {pages} صفحة، و{sum(len(g["subjects"]) for g in GRADES) * 2} فولدر مادة داخل pdf/')
-    print('تم إرجاع التبويبات + إضافة dialog.js')
+    print(f'تم إنشاء {pages} صفحة - تحكم كامل مواد + تبويبات + سحب وإفلات')
 
 
 if __name__ == '__main__':

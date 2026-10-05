@@ -1,38 +1,42 @@
-/* صفحة دخول المشرف: تسجيل الدخول/الخروج عبر /api (تعمل بعد النشر على Vercel) */
-(function () {
+/* لوحة تحكم الأدمن - مع روابط إدارة المواد والتبويبات والترتيب */
+(function(){
   var box = document.getElementById('adminBox');
-  var R = document.currentScript.getAttribute('data-root') || '';
-  var post = function (u, b) { return fetch(u, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) }); };
-  function put(html) { box.innerHTML = html; }
-  function formView(msg) {
-    put('<h1>دخول المشرف</h1><p>أدخل كلمة السر لإضافة الملفات وحذفها من صفحات المواد.</p>' +
-      '<form id="f" autocomplete="off"><label class="field">كلمة السر<input type="password" id="pw" required autofocus></label>' +
-      '<p class="err" role="alert">' + (msg || '') + '</p><button class="btn btn-navy" type="submit">دخول</button></form>');
-    document.getElementById('f').onsubmit = async function (e) {
+  if(!box) return;
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+
+  function renderLogin(err){
+    box.innerHTML='<h1>دخول المشرف</h1><p>أدخل كلمة المرور لإدارة الملفات والمواد والتبويبات</p>'+
+      (err?'<div class="err" style="color:#c62f2f;background:#fdecec;padding:10px 14px;border-radius:12px;margin:12px 0">'+esc(err)+'</div>':'')+
+      '<form id="loginForm"><label class="field">كلمة المرور<input type="password" id="pw" required></label><button class="btn btn-navy" type="submit">دخول</button></form>';
+    document.getElementById('loginForm').onsubmit=async function(e){
       e.preventDefault();
-      var btn = e.target.querySelector('button'); btn.disabled = true;
-      try {
-        var r = await post('/api/login', { password: document.getElementById('pw').value });
-        if (r.ok) return inView();
-        var j = {}; try { j = await r.json(); } catch (x) {}
-        formView(j.error === 'not_configured' ? 'لم تُضبط كلمة السر على الخادم بعد (راجع README).' : 'كلمة السر غير صحيحة.');
-      } catch (x) { formView('تعذّر الاتصال بالخادم.'); }
+      var pw=document.getElementById('pw').value;
+      try{
+        var r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({password:pw})});
+        if(!r.ok) throw new Error('كلمة المرور غير صحيحة');
+        location.reload();
+      }catch(err){ renderLogin(err.message); }
     };
   }
-  function inView() {
-    put('<h1>أنت مسجّل كمشرف</h1><p>افتح أي مادة ثم تبويب «اختبارات قصيرة» أو «اختبارات نهاية الفترة»، وستجد بطاقة «إضافة ملف جديد» وزر الحذف.</p>' +
-      '<a class="btn btn-navy" href="' + R + 'index.html">الذهاب للرئيسية</a><button class="btn btn-ghost" id="out" type="button">تسجيل الخروج</button>');
-    document.getElementById('out').onclick = async function () { try { await post('/api/logout'); } catch (x) {} formView(); };
+
+  function renderDashboard(){
+    box.innerHTML='<h1>مرحبا بك مشرف العدساني</h1><p style="color:var(--muted)">تحكم كامل بدون تعديل باقي المنصة</p>'+
+      '<div style="display:grid;gap:12px;margin-top:20px;text-align:start">'+
+      '<a class="btn btn-navy" href="subjects/index.html">📚 إدارة المواد - إضافة/تعديل/حذف + صور الأغلفة</a>'+
+      '<a class="btn btn-gold" href="tabs/index.html">🗂️ إدارة التبويبات داخل كل مادة - إضافة/حذف/ترتيب بالسحب</a>'+
+      '<a class="btn btn-ghost" href="../staff/index.html">👨‍🏫 إدارة الهيئة التعليمية</a>'+
+      '<a class="btn btn-ghost" href="../index.html">🏠 الصفحة الرئيسية - إدارة المدراء والفائقين</a>'+
+      '<div style="margin-top:12px;padding:14px;background:#f1f5fb;border-radius:14px"><b>ملاحظات التحكم الجديد:</b><ul style="margin:8px 0 0 16px;list-style:disc;font-size:13px;color:var(--muted)"><li>ترتيب الملفات: ادخل أي مادة كأدمن واسحب البطاقات ☰ فوق بعض - يحفظ تلقائيا</li><li>المواد: من زر إدارة المواد تقدر تضيف مادة جديدة لكل الصفوف مع صورة غلاف</li><li>التبويبات: من داخل المادة كأدمن اضغط ⚙️ إدارة التبويبات أو من صفحة إدارة التبويبات العامة</li><li>كل التعديلات تحفظ في R2 بدون ما تغير باقي المنصة</li></ul></div>'+
+      '<button class="btn btn-danger" id="logout" style="margin-top:12px">تسجيل خروج</button>'+
+      '</div>';
+    document.getElementById('logout').onclick=async function(){ await fetch('/api/logout',{method:'POST',credentials:'same-origin'}); location.reload(); };
   }
-  function offView() {
-    put('<h1>الخادم غير متاح</h1><p>تسجيل الدخول يعمل بعد نشر الموقع على Vercel. أثناء التجربة محلياً (VS Code) تظهر إضافة الملفات تلقائياً بوضع معاينة تجريبي داخل صفحات المواد.</p>' +
-      '<a class="btn btn-navy" href="' + R + 'index.html">الذهاب للرئيسية</a>');
-  }
-  (async function () {
-    try {
-      var r = await fetch('/api/session', { credentials: 'same-origin', cache: 'no-store' });
-      if (!r.ok) throw 0;
-      (await r.json()).admin ? inView() : formView();
-    } catch (e) { offView(); }
+
+  (async function(){
+    try{
+      var r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});
+      var j=await r.json();
+      if(j.admin) renderDashboard(); else renderLogin();
+    }catch(e){ renderLogin(); }
   })();
 })();
