@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-مولّد صفحات منصة العدساني - محدث مع مربع حوار موحد + تكبير بطاقات
+مولّد صفحات منصة العدساني - الأصلي مع إضافة dialog.js ومربع الحوار الموحد
 """
 import pathlib
 from html import escape
@@ -47,52 +47,130 @@ TILES = [
     ('11-arts', '11', 'أدبي', 'الحادي عشر أدبي'), ('12-science', '12', 'علمي', 'الثاني عشر علمي'),
     ('12-arts', '12', 'أدبي', 'الثاني عشر أدبي'),
 ]
+ARROW = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" '
+         'stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>')
 
-ARROW = '‹'
 
-def crumbs(items):
-    html = '<nav class="crumbs" aria-label="مسار التنقل"><div class="wrap"><ol>'
-    for i, (label, href) in enumerate(items):
-        if href is None:
-            html += f'<li aria-current="page">{escape(label)}</li>'
-        else:
-            html += f'<li><a href="{href}">{escape(label)}</a></li>'
-    html += '</ol></div></nav>'
-    return html
-
-def get_tabs_html(grade_slug, subject_slug):
-    # Simplified tabs
-    return '<button type="button" class="tab is-active" role="tab" data-tab="book">كتاب الطالب</button>' + \
-           '<button type="button" class="tab" role="tab" data-tab="qbank">بنك الأسئلة</button>' + \
-           '<button type="button" class="tab" role="tab" data-tab="worksheets">أوراق عمل</button>' + \
-           '<button type="button" class="tab" role="tab" data-tab="quizzes">اختبارات قصيرة</button>' + \
-           '<button type="button" class="tab" role="tab" data-tab="exams">اختبارات نهاية الفترة</button>'
-
-def page(root, title, desc, body_class, body, scripts=None, extra_head=''):
-    scripts = scripts or []
-    scripts_html = '\n'.join(f'  <script src="{root}{s}"></script>' for s in scripts)
+def page(root, title, desc, active, body, scripts=(), extra_head=''):
+    sc = ''.join(f'<script src="{root}{s}" data-root="{root}"></script>' for s in scripts)
     return f'''<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{escape(title)}</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2a54">
 <meta name="description" content="{escape(desc)}">
+{extra_head}<title>{escape(title)}</title>
+<link rel="icon" type="image/png" href="{root}assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
 <link rel="stylesheet" href="{root}css/style.css">
-{extra_head}
 </head>
-<body class="{body_class}">
-<header class="site-header"><div class="wrap"><a class="brand" href="{root}index.html"><img src="{root}assets/emblem.png" alt=""><span><b>مدرسة عبدالرزاق العدساني الثانوية بنين</b><small>منصة تعليمية 2026-2027</small></span></a><nav class="nav"><a href="{root}index.html">الرئيسية</a><a href="{root}staff/index.html">الهيئة التعليمية</a><a href="{root}admin/index.html">دخول المشرف</a></nav><button class="burger" id="burger">☰</button><nav class="mnav" id="mnav"><a href="{root}index.html">الرئيسية</a><a href="{root}staff/index.html">الهيئة</a><a href="{root}admin/index.html">المشرف</a></nav></div></header>
+<body>
+<script src="{root}js/header.js" data-root="{root}" data-active="{active}"></script>
 {body}
-<footer class="site-footer"><div class="wrap">© 2026 مدرسة عبدالرزاق العدساني الثانوية بنين</div></footer>
-<script>document.getElementById('burger').onclick=function(){{document.querySelector('.site-header').classList.toggle('open');}};</script>
-{scripts_html}
+<script src="{root}js/footer.js" data-root="{root}"></script>
+<script src="{root}js/main.js"></script>
+{sc}
 </body>
 </html>
 '''
+
+
+def crumbs(items):
+    parts = [f'<a href="{h}">{escape(t)}</a>' if h else f'<span>{escape(t)}</span>' for t, h in items]
+    return '<nav class="crumbs" aria-label="المسار"><div class="wrap">' + '<i>/</i>'.join(parts) + '</div></nav>'
+
+
+def write(rel, text):
+    p = ROOT / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text, encoding='utf-8', newline='\n')
+
+
+def get_tabs_html(grade_slug, subject_slug):
+    is_senior = grade_slug.startswith('11') or grade_slug.startswith('12')
+    if subject_slug == 'english':
+        tabs = [
+            ('book', "Student's Book"),
+            ('workbook', 'Workbook'),
+            ('qbank', 'بنك الأسئلة'),
+            ('worksheets', 'أوراق عمل'),
+            ('quizzes', 'اختبارات قصيرة'),
+            ('exams', 'اختبارات نهاية الفترة')
+        ]
+    elif subject_slug == 'arabic':
+        if grade_slug.startswith('12'):
+            tabs = [
+                ('book', 'كتاب الطالب'),
+                ('nahw', 'قواعد النحو والصرف'),
+                ('qbank', 'بنك الأسئلة'),
+                ('worksheets', 'أوراق عمل'),
+                ('quizzes', 'اختبارات قصيرة'),
+                ('exams', 'اختبارات نهاية الفترة')
+            ]
+        else:
+            tabs = [
+                ('book', 'كتاب الطالب'),
+                ('nahw', 'قواعد النحو والصرف'),
+                ('balagha', 'فنون البلاغة'),
+                ('qbank', 'بنك الأسئلة'),
+                ('worksheets', 'أوراق عمل'),
+                ('quizzes', 'اختبارات قصيرة'),
+                ('exams', 'اختبارات نهاية الفترة')
+            ]
+    elif subject_slug in ('math', 'statistics'):
+        if is_senior:
+            tabs = [
+                ('book', 'كتاب الطالب'),
+                ('exercises', 'كتاب التمارين'),
+                ('qbank', 'بنك الأسئلة'),
+                ('worksheets', 'أوراق عمل'),
+                ('quizzes', 'اختبارات قصيرة'),
+                ('exams', 'اختبارات نهاية الفترة')
+            ]
+        else:
+            tabs = [
+                ('book', 'كتاب الطالب'),
+                ('qbank', 'بنك الأسئلة'),
+                ('worksheets', 'أوراق عمل'),
+                ('quizzes', 'اختبارات قصيرة'),
+                ('exams', 'اختبارات نهاية الفترة')
+            ]
+    elif subject_slug in ('chemistry', 'physics', 'biology', 'geology'):
+        if is_senior:
+            tabs = [
+                ('book', 'كتاب الطالب'),
+                ('applications', 'كراسة التطبيقات'),
+                ('qbank', 'بنك الأسئلة'),
+                ('worksheets', 'أوراق عمل'),
+                ('quizzes', 'اختبارات قصيرة'),
+                ('exams', 'اختبارات نهاية الفترة')
+            ]
+        else:
+            tabs = [
+                ('book', 'كتاب الطالب'),
+                ('qbank', 'بنك الأسئلة'),
+                ('worksheets', 'أوراق عمل'),
+                ('quizzes', 'اختبارات قصيرة'),
+                ('exams', 'اختبارات نهاية الفترة')
+            ]
+    else:
+        tabs = [
+            ('book', 'كتاب الطالب'),
+            ('qbank', 'بنك الأسئلة'),
+            ('worksheets', 'أوراق عمل'),
+            ('quizzes', 'اختبارات قصيرة'),
+            ('exams', 'اختبارات نهاية الفترة')
+        ]
+    return ''.join(
+        f'<button type="button" class="tab" role="tab" data-tab="{k}">{v}</button>' for k, v in tabs
+    )
+
+TAB_HTML = ''.join(
+    f'<button type="button" class="tab" role="tab" data-tab="{k}">{v}</button>' for k, v in
+    [('book', 'كتاب الطالب'), ('qbank', 'بنك الأسئلة'), ('quizzes', 'اختبارات قصيرة'), ('exams', 'اختبارات نهاية الفترة')])
 
 HOME = '''<main>
 <section class="hero"><div class="wrap">
@@ -131,6 +209,7 @@ def build_home():
     tiles = ''.join(
         f'<a class="tile" href="{s}/index.html" title="{full}" aria-label="{full}"><b>{n}</b><small>{lab}</small></a>'
         for s, n, lab, full in TILES)
+    # رجعنا التبويبات الأصلية + أضفنا dialog.js قبل home.js عشان مربع الحوار الموحد
     write('index.html', page('', f'منصة {SCHOOL} التعليمية 2026-2027',
           'منصة تعليمية متكاملة لطلبة مدرسة عبدالرزاق محمد صالح العدساني الثانوية بنين: كتب وبنوك أسئلة واختبارات.',
           'home', HOME.replace('%TILES%', tiles), ['js/dialog.js', 'data/content.js', 'js/home.js']))
@@ -224,11 +303,6 @@ PDF_README = '''# ملفات الـPDF
 '''
 
 
-def write(rel, content):
-    path = ROOT / rel
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding='utf-8')
-
 def main():
     build_home(); build_staff(); build_admin(); build_404()
     pages = 4
@@ -240,8 +314,12 @@ def main():
                 build_subject(g, t, s); pages += 1
     write('pdf/README.md', PDF_README)
     write('assets/img/subjects/README.txt',
-          'لتبديل غلاف أي مادة بصورة حقيقية: (1) ضع صورة JPG هنا باسم المادة، مثال: chemistry.jpg\n')
-    print(f'Built {pages} pages')
+          'لتبديل غلاف أي مادة بصورة حقيقية: (1) ضع صورة JPG هنا باسم المادة، مثال: chemistry.jpg\n'
+          '(2) أضف اسم المادة إلى covers في ملف data/content.js، مثال: covers: [\'chemistry\']\n'
+          'أسماء الملفات: ' + ' ، '.join(f'{k}.jpg' for k in SUBJ) + '\n')
+    print(f'تم إنشاء {pages} صفحة، و{sum(len(g["subjects"]) for g in GRADES) * 2} فولدر مادة داخل pdf/')
+    print('تم إرجاع التبويبات + إضافة dialog.js')
+
 
 if __name__ == '__main__':
     main()
