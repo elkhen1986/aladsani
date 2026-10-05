@@ -12,13 +12,17 @@ const R2 = new S3Client({
 const BUCKET = process.env.R2_BUCKET_NAME;
 const KEY = 'data/home.json';
 
-// GET يرجع بيانات الصفحة الرئيسية من R2 أو null
-// POST يحفظ (أدمن فقط)
+async function streamToString(stream) {
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  return Buffer.concat(chunks).toString('utf-8');
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const data = await R2.send(new GetObjectCommand({ Bucket: BUCKET, Key: KEY }));
-      const text = await data.Body.transformToString('utf-8');
+      const text = await streamToString(data.Body);
       return res.status(200).json(JSON.parse(text));
     } catch (e) {
       return res.status(200).json(null);

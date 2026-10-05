@@ -12,13 +12,17 @@ const R2 = new S3Client({
 const BUCKET = process.env.R2_BUCKET_NAME;
 const KEY = 'data/staff.json';
 
-// GET يرجع البيانات من R2 أو null
-// POST يحفظ البيانات (أدمن فقط)
+async function streamToString(stream) {
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  return Buffer.concat(chunks).toString('utf-8');
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const data = await R2.send(new GetObjectCommand({ Bucket: BUCKET, Key: KEY }));
-      const text = await data.Body.transformToString('utf-8');
+      const text = await streamToString(data.Body);
       const json = JSON.parse(text);
       return res.status(200).json(json);
     } catch (e) {
@@ -35,7 +39,6 @@ export default async function handler(req, res) {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       if (!body || !body.departments) return res.status(400).json({ error: 'بيانات غير صحيحة' });
       
-      // تحقق بسيط من الحجم
       const str = JSON.stringify(body);
       if (str.length > 2 * 1024 * 1024) return res.status(400).json({ error: 'البيانات كبيرة جدا' });
 
