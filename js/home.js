@@ -1,17 +1,25 @@
-/* الصفحة الرئيسية - تحكم كامل للأدمن: بطاقات المديرين + لوحة الشرف */
+/* الصفحة الرئيسية - تحكم كامل + بطاقات الطلاب تكبر + رسائل مربع المنصة */
 (function(){
   var S = window.SITE || {};
-  var R = '';
   var esc = function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
   var src = function(p){ return !p ? 'assets/img/avatar.jpg' : (/^(https?:)?\/\//.test(p) ? p : p); };
   var fb = ' onerror="this.onerror=null;this.src=\'assets/img/avatar.jpg\'"';
   
   var isAdmin = false;
-  var data = null; // { leaders, honor, about, offers, about stat }
+  var data = null;
 
   function toast(msg){
     var t=document.querySelector('.toast'); if(!t){ t=document.createElement('div'); t.className='toast'; document.body.appendChild(t); }
     t.textContent=msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },3000);
+  }
+
+  // مربع حوار موحد بدل confirm
+  function platformConfirm(title, message, danger){
+    if(window.PlatformDialog && window.PlatformDialog.confirm){
+      return window.PlatformDialog.confirm({title:title, message:message, danger:!!danger, confirmText: danger ? 'حذف' : 'تأكيد', cancelText:'إلغاء'});
+    }
+    // fallback قديم
+    return Promise.resolve(confirm(message));
   }
 
   async function checkAdmin(){
@@ -47,6 +55,33 @@
     var j=await r.json(); return j.url;
   }
 
+  // ---------- لايت بوكس للطلاب (يفتح لوحده كبير) ----------
+  var studentLightbox=null;
+  function ensureStudentLB(){
+    if(studentLightbox) return studentLightbox;
+    studentLightbox=document.createElement('div');
+    studentLightbox.className='modal';
+    studentLightbox.id='studentLightbox';
+    studentLightbox.innerHTML='<div class="m-box lb" role="dialog" aria-modal="true" style="max-width:460px;text-align:center"><button type="button" class="m-x" aria-label="إغلاق">✕</button><img id="stImg" style="width:100%;height:280px;object-fit:cover;border-radius:16px;margin-bottom:16px" alt=""><h3 id="stName" style="font-size:20px;font-weight:900;color:var(--navy)"></h3><p id="stGrade" style="color:var(--muted);font-weight:700;margin-top:4px"></p><span id="stScore" class="score" style="margin-top:10px;display:inline-block;background:var(--gold);color:var(--navy);padding:6px 16px;border-radius:999px;font-weight:900"></span></div>';
+    document.body.appendChild(studentLightbox);
+    studentLightbox.querySelector('.m-x').onclick=function(){ studentLightbox.classList.remove('open'); };
+    studentLightbox.onclick=function(e){ if(e.target===studentLightbox) studentLightbox.classList.remove('open'); };
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape' && studentLightbox) studentLightbox.classList.remove('open'); });
+    return studentLightbox;
+  }
+
+  function openStudentLB(h){
+    var m=ensureStudentLB();
+    m.querySelector('#stImg').src=src(h.photo);
+    m.querySelector('#stImg').onerror=function(){ this.style.display='none'; };
+    m.querySelector('#stImg').style.display='block';
+    m.querySelector('#stName').textContent=h.name||'';
+    m.querySelector('#stGrade').textContent=h.grade||'';
+    m.querySelector('#stScore').textContent=h.score||'';
+    m.querySelector('#stScore').style.display=h.score?'inline-block':'none';
+    m.classList.add('open');
+  }
+
   function renderLeaders(){
     var el=document.getElementById('leaders'); if(!el||!data.leaders) return;
     var L=data.leaders;
@@ -60,7 +95,13 @@
     
     if(isAdmin){
       el.querySelectorAll('[data-edit-leader]').forEach(function(b){ b.onclick=function(){ openLeaderModal(parseInt(b.getAttribute('data-edit-leader'))); }; });
-      el.querySelectorAll('[data-del-leader]').forEach(function(b){ b.onclick=function(){ var i=parseInt(b.getAttribute('data-del-leader')); if(confirm('حذف '+data.leaders[i].name+'؟')){ data.leaders.splice(i,1); renderLeaders(); saveAll(); } }; });
+      el.querySelectorAll('[data-del-leader]').forEach(function(b){ 
+        b.onclick=async function(){ 
+          var i=parseInt(b.getAttribute('data-del-leader')); 
+          var ok = await platformConfirm('حذف المدير', 'هل تريد حذف '+esc(data.leaders[i].name)+' نهائياً؟', true);
+          if(ok){ data.leaders.splice(i,1); renderLeaders(); saveAll(); } 
+        }; 
+      });
       var addBtn=document.getElementById('btnAddLeader'); if(addBtn) addBtn.onclick=function(){ openLeaderModal(null); };
     }
   }
@@ -69,16 +110,32 @@
     var track=document.getElementById('track'); if(!track||!data.honor) return;
     track.innerHTML = data.honor.map(function(h, i){
       var adminBtn = isAdmin ? '<div class="h-admin"><button data-edit-honor="'+i+'">✏️</button><button class="del" data-del-honor="'+i+'">🗑️</button></div>' : '';
-      return '<article class="h-card"><img src="'+esc(src(h.photo))+'" alt="'+esc(h.name)+'"'+fb+'><div class="h-meta"><div><b>'+esc(h.name)+'</b><small>'+esc(h.grade||'')+'</small></div><span class="score">'+esc(h.score||'')+'</span></div>'+adminBtn+'</article>';
+      return '<article class="h-card" data-honor-idx="'+i+'" style="cursor:pointer"><img src="'+esc(src(h.photo))+'" alt="'+esc(h.name)+'"'+fb+'><div class="h-meta"><div><b>'+esc(h.name)+'</b><small>'+esc(h.grade||'')+'</small></div><span class="score">'+esc(h.score||'')+'</span></div>'+adminBtn+'</article>';
     }).join('') + (isAdmin ? '<button class="h-card add-honor" id="btnAddHonor" style="display:grid;place-items:center;min-height:260px;border:2px dashed rgba(255,255,255,.3);background:transparent"><span style="font-size:32px">+</span><span>إضافة طالب</span></button>' : '');
     
+    // ضغط البطاقة يفتحها كبيرة (للجميع)
+    track.querySelectorAll('.h-card[data-honor-idx]').forEach(function(card){
+      card.onclick=function(e){
+        // لو ضغط على زر التعديل/الحذف لا يفتح اللايت بوكس
+        if(e.target.closest('[data-edit-honor]') || e.target.closest('[data-del-honor]')) return;
+        var idx=parseInt(card.getAttribute('data-honor-idx'));
+        openStudentLB(data.honor[idx]);
+      };
+    });
+    
     if(isAdmin){
-      track.querySelectorAll('[data-edit-honor]').forEach(function(b){ b.onclick=function(){ openHonorModal(parseInt(b.getAttribute('data-edit-honor'))); }; });
-      track.querySelectorAll('[data-del-honor]').forEach(function(b){ b.onclick=function(){ var i=parseInt(b.getAttribute('data-del-honor')); if(confirm('حذف '+data.honor[i].name+'؟')){ data.honor.splice(i,1); renderHonor(); saveAll(); } }; });
+      track.querySelectorAll('[data-edit-honor]').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); openHonorModal(parseInt(b.getAttribute('data-edit-honor'))); }; });
+      track.querySelectorAll('[data-del-honor]').forEach(function(b){ 
+        b.onclick=async function(e){ 
+          e.stopPropagation(); 
+          var i=parseInt(b.getAttribute('data-del-honor')); 
+          var ok = await platformConfirm('حذف الطالب', 'هل تريد حذف الطالب '+esc(data.honor[i].name)+' من لوحة الشرف؟', true);
+          if(ok){ data.honor.splice(i,1); renderHonor(); saveAll(); } 
+        }; 
+      });
       var addBtn=document.getElementById('btnAddHonor'); if(addBtn) addBtn.onclick=function(){ openHonorModal(null); };
     }
     
-    // أسهم التمرير (موجودة أصلا في main.js لكن نضمنها)
     var prev=document.getElementById('prev'), next=document.getElementById('next');
     if(prev&&next&&track){
       prev.onclick=function(){ track.scrollBy({left:280,behavior:'smooth'}); };
@@ -103,7 +160,7 @@
     }
   }
 
-  // مودالات
+  // مودالات التعديل
   var editModal=null;
   function ensureModal(){
     if(editModal) return editModal;

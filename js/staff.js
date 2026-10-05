@@ -1,4 +1,4 @@
-/* صفحة الهيئة التعليمية - تحكم كامل للأدمن: إضافة/تعديل/حذف أقسام + رؤساء + معلمين + مديرين */
+/* الهيئة التعليمية - تحكم كامل + مربع حوار موحد بدل رسائل النظام + بطاقات تكبر */
 (function () {
   var S = window.SITE || {};
   var R = document.currentScript ? document.currentScript.getAttribute('data-root') || '' : '';
@@ -7,7 +7,7 @@
   var fb = ' onerror="this.onerror=null;this.src=\'' + R + 'assets/img/avatar.jpg\'"';
   
   var isAdmin = false;
-  var data = null; // { leaders, departments }
+  var data = null;
   var deptsEl = document.getElementById('depts');
   var leadRowEl = document.getElementById('leadRow');
   
@@ -15,6 +15,13 @@
     var t = document.querySelector('.toast');
     if(!t){ t=document.createElement('div'); t.className='toast'; document.body.appendChild(t); }
     t.textContent = msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); }, 3000);
+  }
+
+  function platformConfirm(title, message, danger){
+    if(window.PlatformDialog && window.PlatformDialog.confirm){
+      return window.PlatformDialog.confirm({title:title, message:message, danger:!!danger, confirmText: danger ? 'حذف' : 'تأكيد', cancelText:'إلغاء'});
+    }
+    return Promise.resolve(confirm(message));
   }
 
   async function checkAdmin(){
@@ -61,7 +68,31 @@
     }catch(e){ toast('فشل الحفظ: ' + e.message); return false; }
   }
 
-  // ---------- رسم ----------
+  // لايت بوكس للمعلمين (للطلاب)
+  var teacherLB=null;
+  function ensureTeacherLB(){
+    if(teacherLB) return teacherLB;
+    teacherLB=document.createElement('div');
+    teacherLB.className='modal';
+    teacherLB.innerHTML='<div class="m-box lb" style="max-width:400px;text-align:center"><button class="m-x">✕</button><img id="tLbImg" style="width:120px;height:120px;border-radius:50%;object-fit:cover;margin:0 auto 14px;border:4px solid var(--gold-2)"><h3 id="tLbName"></h3><p id="tLbSub" style="color:var(--muted);font-weight:700;margin-top:4px"></p><p id="tLbBio" style="color:var(--muted);margin-top:8px;font-size:14px"></p></div>';
+    document.body.appendChild(teacherLB);
+    teacherLB.querySelector('.m-x').onclick=function(){ teacherLB.classList.remove('open'); };
+    teacherLB.onclick=function(e){ if(e.target===teacherLB) teacherLB.classList.remove('open'); };
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') teacherLB.classList.remove('open'); });
+    return teacherLB;
+  }
+
+  function openTeacherLB(t){
+    var m=ensureTeacherLB();
+    var img=m.querySelector('#tLbImg');
+    img.src=src(t.photo); img.style.display='block'; img.onerror=function(){ this.style.display='none'; };
+    m.querySelector('#tLbName').textContent=t.name||'';
+    m.querySelector('#tLbSub').textContent=t.subject||'';
+    m.querySelector('#tLbBio').textContent=t.bio||'';
+    m.querySelector('#tLbBio').style.display=t.bio?'block':'none';
+    m.classList.add('open');
+  }
+
   function renderLeaders(){
     if(!leadRowEl || !data.leaders) return;
     var L = data.leaders;
@@ -100,14 +131,17 @@
 
   function bindDeptEvents(){
     if(!isAdmin) return;
-    deptsEl.querySelectorAll('[data-act]').forEach(function(btn){
-      var act = btn.getAttribute('data-act');
-      if(act==='edit-teacher' || act==='del-teacher' || act==='add-teacher') return; // handled elsewhere or below
-      btn.onclick = function(){
-        var di = parseInt(btn.getAttribute('data-di'));
-        if(act==='edit-dept') openDeptModal(di);
-        if(act==='edit-head') openHeadModal(di);
-        if(act==='del-dept'){ if(confirm('حذف القسم '+data.departments[di].name+'؟')){ data.departments.splice(di,1); renderDepts(); saveAll(); } }
+    deptsEl.querySelectorAll('[data-act="edit-dept"]').forEach(function(btn){
+      btn.onclick = function(){ openDeptModal(parseInt(btn.getAttribute('data-di'))); };
+    });
+    deptsEl.querySelectorAll('[data-act="edit-head"]').forEach(function(btn){
+      btn.onclick = function(){ openHeadModal(parseInt(btn.getAttribute('data-di'))); };
+    });
+    deptsEl.querySelectorAll('[data-act="del-dept"]').forEach(function(btn){
+      btn.onclick = async function(){
+        var di=parseInt(btn.getAttribute('data-di'));
+        var ok = await platformConfirm('حذف القسم', 'هل تريد حذف قسم "'+esc(data.departments[di].name)+'" بكل معلميه؟ لا يمكن التراجع.', true);
+        if(ok){ data.departments.splice(di,1); renderDepts(); saveAll(); }
       };
     });
     deptsEl.querySelectorAll('[data-act="add-teacher"]').forEach(function(btn){
@@ -117,46 +151,37 @@
       btn.onclick = function(e){ e.stopPropagation(); openTeacherModal(parseInt(btn.getAttribute('data-di')), parseInt(btn.getAttribute('data-ti'))); };
     });
     deptsEl.querySelectorAll('[data-act="del-teacher"]').forEach(function(btn){
-      btn.onclick = function(e){ e.stopPropagation(); var di=parseInt(btn.getAttribute('data-di')), ti=parseInt(btn.getAttribute('data-ti')); if(confirm('حذف '+data.departments[di].teachers[ti].name+'؟')){ data.departments[di].teachers.splice(ti,1); renderDepts(); saveAll(); } };
+      btn.onclick = async function(e){ 
+        e.stopPropagation(); 
+        var di=parseInt(btn.getAttribute('data-di')), ti=parseInt(btn.getAttribute('data-ti')); 
+        var ok = await platformConfirm('حذف المعلم', 'هل تريد حذف المعلم '+esc(data.departments[di].teachers[ti].name)+'؟', true);
+        if(ok){ data.departments[di].teachers.splice(ti,1); renderDepts(); saveAll(); } 
+      };
     });
   }
 
-  // مودال المعلمين للعرض (للطلاب) + للتحكم (للأدمن يضغط مرتين؟) - نستخدم مودال منفصل للعرض
   function bindTeacherLightbox(){
+    // للطلاب فقط (أو للأدمن لما يضغط على الصورة نفسها)
     var cards = deptsEl.querySelectorAll('.t-card');
     cards.forEach(function(card){
-      // لو أدمن، الضغط على البطاقة نفسها يفتح التعديل، الضغط المطول؟ نبسط: ضغط عادي للعرض، أزرار التعديل منفصلة
-      if(isAdmin) return; // للأدمن نمنع اللايت بوكس عشان ما يتداخل مع التعديل
-      card.onclick = function(){
-        var di = parseInt(card.getAttribute('data-dept'));
-        var ti = parseInt(card.getAttribute('data-teacher'));
-        openViewModal(di, ti);
+      // لو أدمن وعنده أزرار تعديل، لا نفتح بالضغط العادي عشان ما يتداخل، لكن نفتح لو ضغط على الصورة
+      card.onclick = function(e){
+        if(e.target.closest('.t-actions') || e.target.closest('[data-act]')) return;
+        if(isAdmin){
+          // للأدمن: الضغط يفتح العرض الكبير، التعديل من زر القلم
+          var di=parseInt(card.getAttribute('data-dept')), ti=parseInt(card.getAttribute('data-teacher'));
+          var t=data.departments[di].teachers[ti];
+          openTeacherLB(t);
+          return;
+        }
+        var di=parseInt(card.getAttribute('data-dept')), ti=parseInt(card.getAttribute('data-teacher'));
+        var t=data.departments[di].teachers[ti];
+        openTeacherLB(t);
       };
-      card.onkeydown = function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); var di=parseInt(card.getAttribute('data-dept')); var ti=parseInt(card.getAttribute('data-teacher')); openViewModal(di,ti); } };
+      card.onkeydown = function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); card.click(); } };
     });
   }
 
-  // مودال عرض معلم (للطلاب)
-  var viewModal = null;
-  function ensureViewModal(){
-    if(viewModal) return viewModal;
-    viewModal = document.createElement('div');
-    viewModal.className = 'modal';
-    viewModal.innerHTML = '<div class="m-box lb" style="max-width:400px;text-align:center"><button class="m-x">✕</button><img id="vImg" style="width:110px;height:110px;border-radius:50%;object-fit:cover;margin:0 auto 14px;border:4px solid var(--gold-2)"><h3 id="vName"></h3><p id="vSub" style="color:var(--muted);font-weight:700;margin-top:4px"></p></div>';
-    document.body.appendChild(viewModal);
-    viewModal.querySelector('.m-x').onclick = function(){ viewModal.classList.remove('open'); };
-    viewModal.onclick = function(e){ if(e.target===viewModal) viewModal.classList.remove('open'); };
-    return viewModal;
-  }
-  function openViewModal(di, ti){
-    var t = data.departments[di].teachers[ti];
-    var m = ensureViewModal();
-    var img = m.querySelector('#vImg'); img.src = src(t.photo); img.onerror = function(){ this.style.display='none'; };
-    m.querySelector('#vName').textContent = t.name; m.querySelector('#vSub').textContent = t.subject||'';
-    m.classList.add('open');
-  }
-
-  // ---------- مودالات التعديل للأدمن ----------
   var editModal = null;
   function ensureEditModal(){
     if(editModal) return editModal;
@@ -263,7 +288,6 @@
   }
 
   function openLeadersModal(){
-    // نافذة تختار أي مدير تعدل
     var m = ensureEditModal();
     m.querySelector('#emTitle').textContent = 'اختر من تريد تعديله';
     var html = data.leaders.map(function(l,i){ return '<button class="btn btn-ghost" style="width:100%;margin-top:8px;justify-content:flex-start" data-leader-idx="'+i+'">'+esc(l.role)+' - '+esc(l.name)+'</button>'; }).join('');
@@ -274,7 +298,6 @@
     setTimeout(function(){ m.querySelector('#emSave').style.display=''; }, 500);
   }
 
-  // تشغيل
   (async function(){
     await loadData();
     await checkAdmin();

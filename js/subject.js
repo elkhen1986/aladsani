@@ -1,4 +1,4 @@
-/* صفحة المادة: مع تبويب أوراق عمل الجديد */
+/* صفحة المادة - مع مربع حوار موحد بدل رسائل النظام */
 (function () {
   var M = document.getElementById('subject'), D = {
     grade: M.getAttribute('data-grade'), term: M.getAttribute('data-term'), subject: M.getAttribute('data-subject'),
@@ -39,11 +39,16 @@
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var SPIN = '<div class="state"><div class="spin"></div></div>';
 
-  /* ---------- إضافة التبويبات تلقائياً حسب المادة ---------- */
+  function platformConfirm(title, message, danger){
+    if(window.PlatformDialog && window.PlatformDialog.confirm){
+      return window.PlatformDialog.confirm({title:title, message:message, danger:!!danger, confirmText: danger ? 'حذف' : 'تأكيد', cancelText:'إلغاء'});
+    }
+    return Promise.resolve(confirm(message));
+  }
+
   (function injectTabs(){
     var tabsBar = document.getElementById('tabs-bar') || document.querySelector('.tabs');
     if(!tabsBar) return;
-    
     function addTabIfMissing(id, label, afterId){
       if(tabsBar.querySelector('[data-tab="'+id+'"]')) return;
       var after = afterId ? tabsBar.querySelector('[data-tab="'+afterId+'"]') : null;
@@ -55,30 +60,11 @@
       else tabsBar.appendChild(btn);
       btn.addEventListener('click', function(){ show(id, true); });
     }
-
-    if(isEnglish){
-      addTabIfMissing('workbook', 'Workbook', 'book');
-      var bookBtn = tabsBar.querySelector('[data-tab="book"]');
-      if(bookBtn) bookBtn.textContent = "Student's Book";
-    }
-    if(isArabic){
-      addTabIfMissing('nahw', 'قواعد النحو والصرف', 'book');
-      if(!isGrade12){
-        addTabIfMissing('balagha', 'فنون البلاغة', 'nahw');
-      } else {
-        var bTab = tabsBar.querySelector('[data-tab="balagha"]');
-        if(bTab) bTab.remove();
-      }
-    }
-    if(isMathSenior){
-      addTabIfMissing('exercises', 'كتاب التمارين', 'book');
-    }
-    if(isScienceSenior){
-      addTabIfMissing('applications', 'كراسة التطبيقات', 'book');
-    }
-    // أوراق عمل - لكل المواد
+    if(isEnglish){ addTabIfMissing('workbook', 'Workbook', 'book'); var bookBtn = tabsBar.querySelector('[data-tab="book"]'); if(bookBtn) bookBtn.textContent = "Student's Book"; }
+    if(isArabic){ addTabIfMissing('nahw', 'قواعد النحو والصرف', 'book'); if(!isGrade12){ addTabIfMissing('balagha', 'فنون البلاغة', 'nahw'); } else { var bTab = tabsBar.querySelector('[data-tab="balagha"]'); if(bTab) bTab.remove(); } }
+    if(isMathSenior){ addTabIfMissing('exercises', 'كتاب التمارين', 'book'); }
+    if(isScienceSenior){ addTabIfMissing('applications', 'كراسة التطبيقات', 'book'); }
     addTabIfMissing('worksheets', 'أوراق عمل', 'qbank');
-    
     tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
   })();
 
@@ -128,15 +114,12 @@
   }
   async function showList(kind, my) {
     panel.innerHTML = SPIN;
-    await ready; var all = await loadFiles();
+    var items = (await loadFiles()).filter(function (f) { return f.kind === kind; });
     if (my !== seq) return;
-    var items = all.filter(function (f) { return f.kind === kind; })
-                   .sort(function (a, b) { return new Date(a.uploadedAt) - new Date(b.uploadedAt); });
     var h = '';
-    if (st.preview) h += '<div class="note">معاينة محلية: الرفع هنا تجريبي ولا يُحفظ. بعد النشر على Vercel وتسجيل دخول المشرف يُحفظ الملف فعلياً.</div>';
-    h += items.map(card).join('');
-    if (!items.length) h += '<div class="state" style="min-height:170px"><div class="ico">🗂</div><h3>لا توجد ملفات بعد</h3><p>ستظهر الملفات هنا فور إضافتها.</p></div>';
-    if (st.admin) h += '<button type="button" class="add-card" data-act="add"><span class="plus">+</span>إضافة ملف جديد</button>';
+    if (st.admin) h += '<button type="button" class="add-card" data-act="add"><span class="plus">+</span>إضافة ' + esc(LABEL[kind] || kind) + '</button>';
+    if (!items.length) h += '<div class="state"><div class="ico">📂</div><h3>لا يوجد ملفات</h3><p>لم يتم رفع ملفات في هذا القسم بعد.</p></div>';
+    else items.forEach(function (f, i) { h += card(f, i); });
     panel.innerHTML = '<div class="p-scroll"><div class="files">' + h + '</div></div>';
     panel.querySelector('.files').onclick = function (e) {
       var b = e.target.closest('[data-act]'); if (!b) return;
@@ -155,7 +138,8 @@
     Viewer.mount(panel.querySelector('.v-body'), { url: f.url, name: f.title });
   }
   async function remove(f, kind) {
-    if (!confirm('حذف الملف «' + f.title + '» نهائياً؟')) return;
+    var ok = await platformConfirm('حذف الملف', 'هل تريد حذف الملف «' + esc(f.title) + '» نهائياً؟ لا يمكن التراجع.', true);
+    if (!ok) return;
     try {
       if (!st.preview) {
         var r = await fetch('/api/delete', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: f.url }) });
@@ -247,10 +231,8 @@
       err(''); go.disabled = true; bar.style.display = 'block'; bar.firstChild.style.width = '0%';
       try {
         var item = await send(curKind, title, file, function (p) { bar.firstChild.style.width = p + '%'; });
-        // اجبار اعادة تحميل من R2 للتأكد ان الملف اتحفظ فعلا
         st.files = null;
         await loadFiles();
-        // لو الـ API رجع الملف الجديد، مش محتاج push
         var exists = st.files.some(function(x){ return x.key === item.key || x.url === item.url; });
         if (!exists) st.files.push(item);
         modal.classList.remove('open'); toast('تم رفع الملف بنجاح'); show(curKind);
