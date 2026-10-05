@@ -119,7 +119,8 @@
     return st.files;
   }
   function card(f, i) {
-    return '<article class="f-card"><span class="f-ico">PDF</span><div class="f-info"><h4>' + esc(f.title) + '</h4>' +
+    var displayTitle = (f.title && f.title.trim().length > 1 && f.title.toLowerCase() !== 'undefined') ? f.title : (f.key ? f.key.split('/').pop().replace(/^\d+_/, '').replace(/\.pdf$/i,'').replace(/_/g,' ') : 'ملف بدون عنوان');
+    return '<article class="f-card"><span class="f-ico">PDF</span><div class="f-info"><h4>' + esc(displayTitle) + '</h4>' +
       '<p class="f-meta"><span>' + esc(fmtDate(f.uploadedAt)) + '</span><span dir="ltr">' + fmtSize(f.size) + '</span></p></div>' +
       '<div class="f-act"><button type="button" class="btn btn-navy btn-sm" data-act="view" data-i="' + i + '">عرض</button>' +
       '<button type="button" class="btn btn-gold btn-sm" data-act="dl" data-i="' + i + '">تحميل</button>' +

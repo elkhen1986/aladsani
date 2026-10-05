@@ -28,6 +28,15 @@ export default async function handler(req, res) {
       .map(obj => {
         const parts = obj.Key.split('/');
         if (parts.length < 6) return null;
+        const rawFile = parts[5];
+        // استخراج الاسم
+        let title = rawFile.replace(/^\d+_/, '').replace(/\.pdf$/i, '').replace(/_/g, ' ').trim();
+        // fallback لو الاسم فاضي او undefined
+        if (!title || title.toLowerCase() === 'undefined' || title.length < 2) {
+          // حاول استخرج من raw بدون timestamp
+          const withoutTs = rawFile.replace(/\.pdf$/i, '').replace(/_/g, ' ').trim();
+          title = withoutTs.replace(/^\d+\s*/, '').trim() || 'ملف بدون عنوان';
+        }
         return {
           url: `${process.env.R2_PUBLIC_URL}/${obj.Key}`,
           key: obj.Key,
@@ -35,7 +44,7 @@ export default async function handler(req, res) {
           term: parts[2],
           subject: parts[3],
           kind: parts[4],
-          title: parts[5].replace(/^\d+_/, '').replace(/\.pdf$/, '').replace(/_/g, ' '),
+          title: title,
           size: obj.Size,
           uploadedAt: obj.LastModified,
         };
@@ -45,7 +54,6 @@ export default async function handler(req, res) {
     return res.status(200).json(files);
   } catch (err) {
     console.error('R2 list error', err.message);
-    // لو Access Denied رجع لستة فاضية مؤقتا عشان الموقع مايقعش
     if (err.message.includes('AccessDenied') || err.message.includes('Access Denied')) {
       return res.status(200).json([]);
     }
