@@ -70,7 +70,7 @@ window.SITE = {
   },
   teachers: [
     { name: 'أ. ناجي حسن', subject: 'معلم كيمياء', photo: '' },
-    { name: 'أ. عبدالحميد الخن', subject: 'معلم كيمياء', photo: 'assets/img/staff/elkhan.jpeg' },
+    { name: 'أ. عبدالحميد الخن', subject: 'معلم كيمياء', photo: '' },
     { name: 'أ. محمد العنزي', subject: 'معلم كيمياء', photo: '' },
     { name: 'أ. عمرو العنقودي', subject: 'معلم كيمياء', photo: '' },
     { name: 'أ. ضاري المري', subject: 'معلم كيمياء', photo: '' },
