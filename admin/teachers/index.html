@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>إدارة المعلمين</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<style>
+.modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.5);display:none;place-items:center;padding:20px}
+.modal.open{display:grid}
+.m-box{width:min(520px,100%);background:#fff;border-radius:20px;padding:24px;max-height:90vh;overflow-y:auto}
+.m-x{float:left;width:32px;height:32px;border-radius:50%;background:#f1f5fb;display:grid;place-items:center}
+.field{display:block;margin:12px 0}.field input{width:100%;margin-top:6px;padding:10px 14px;border:1px solid #e4e9f2;border-radius:12px}
+.m-act{display:flex;gap:8px;margin-top:16px}.err{color:#c62f2f;font-size:12px;margin-top:8px}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0d2a54;color:#fff;padding:10px 18px;border-radius:999px;opacity:0;transition:.3s;z-index:200}.toast.show{opacity:1}
+.f-card{background:#fff;border:1px solid #e4e9f2;border-radius:14px;padding:14px}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="wrap"><a class="brand" href="../../index.html"><img src="../../assets/logo.png"><b>العدساني</b><small>إدارة المعلمين</small></a><a class="btn btn-ghost btn-sm" href="../index.html">⬅️ رجوع</a></div></header>
+<main id="teachersBox" style="min-height:80vh"></main>
+<script src="../../data/content.js"></script>
+<script src="../../js/admin-teachers.js"></script>
+</body>
+</html>
