@@ -1,5 +1,4 @@
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSession } from '../lib/auth.js';
 
 async function streamToString(stream) {
   const chunks = [];
@@ -11,10 +10,7 @@ function getR2(){
   return new S3Client({
     region: 'auto',
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    },
+    credentials: { accessKeyId: process.env.R2_ACCESS_KEY_ID, secretAccessKey: process.env.R2_SECRET_ACCESS_KEY },
   });
 }
 
@@ -36,6 +32,7 @@ export default async function handler(req, res){
       const txt = await streamToString(data.Body);
       return res.status(200).json(JSON.parse(txt));
     }catch(e){
+      // ملف غير موجود = رجع افتراضي فاضي
       if(type==='orders') return res.status(200).json({});
       if(type==='tabs') return res.status(200).json({subjectTabs:{}, gradeSubjectTabs:{}});
       return res.status(200).json({subjects:{}, gradeSubjects:{}, covers:{}});
@@ -43,16 +40,11 @@ export default async function handler(req, res){
   }
 
   if(req.method === 'POST'){
-    // 🔒 أدمن فقط - المعلم يضيف ويمسح ملفات بس من upload-r2 و delete
-    const session = getSession(req);
-    if(!session || session.role!=='admin'){
-      return res.status(403).json({error:'forbidden - admin only'});
-    }
-
     try{
       let body = req.body;
       if(typeof body === 'string'){ try{ body = JSON.parse(body); }catch(e){} }
-
+      
+      // حالة خاصة لإعادة الترتيب
       if(type==='orders' && body.grade){
         let current = {};
         try{

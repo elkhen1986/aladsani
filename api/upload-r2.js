@@ -1,5 +1,4 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSession } from '../lib/auth.js';
 
 const R2 = new S3Client({
   region: 'auto',
@@ -43,7 +42,7 @@ function parseMultipart(buffer, boundary) {
       result.fileName = filenameMatch[1];
       result.file = Buffer.from(content, 'binary');
     } else {
-      // FIX: فك تشفير UTF-8 للعربي (نفس كودك القديم)
+      // FIX: فك تشفير UTF-8 للعربي
       try {
         result.fields[fieldName] = Buffer.from(content, 'binary').toString('utf8').trim();
       } catch(e) {
@@ -57,10 +56,6 @@ function parseMultipart(buffer, boundary) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({error:'Method not allowed'});
   
-  // جديد: تحقق تسجيل دخول
-  const session = getSession(req);
-  if(!session) return res.status(401).json({error:'not authenticated - سجل دخول من /admin'});
-
   try {
     const contentType = req.headers['content-type'] || '';
     const boundaryMatch = contentType.match(/boundary=(.+)/);
@@ -84,14 +79,7 @@ export default async function handler(req, res) {
     let title = (fields.title || '').toString().trim();
     if (!title || title.length < 2) title = 'ملف بدون عنوان';
 
-    // جديد: تحقق صلاحية المعلم
-    if(session.role==='teacher'){
-      if(!session.subjects.includes(subject) &&!session.subjects.includes('*') &&!session.subjects.includes('all')){
-        return res.status(403).json({error:'forbidden - ليس لديك صلاحية لهذه المادة: '+subject});
-      }
-    }
-
-    // تنظيف الاسم - يسمح عربي + انجليزي + ارقام (نفس كودك)
+    // تنظيف الاسم - يسمح عربي + انجليزي + ارقام
     let safeTitle = String(title).replace(/[^a-zA-Z0-9-_\u0600-\u06FF ]/g, '_').slice(0,80).replace(/\s+/g,'_').replace(/__+/g,'_').replace(/^_+|_+$/g,'');
     if (!safeTitle || safeTitle.length < 2 || safeTitle.toLowerCase() === 'undefined') {
       safeTitle = 'ملف_' + Date.now();

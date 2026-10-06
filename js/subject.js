@@ -1,4 +1,4 @@
-/* صفحة المادة - أدمن: تحكم كامل / معلم: يضيف ويمسح ملفات بس - ممنوع تعديل اسم/غلاف/تبويبات/ترتيب */
+/* صفحة المادة - تحكم كامل: سحب وإفلات ترتيب الملفات + تحكم في التبويبات + مواد */
 (function () {
   var M = document.getElementById('subject'), D = {
     grade: M.getAttribute('data-grade'), term: M.getAttribute('data-term'), subject: M.getAttribute('data-subject'),
@@ -36,7 +36,7 @@
   }
 
   var local = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-  var st = { admin: false, teacher:false, teacherSubjects:[], teacherName:'', preview: false, files: null, tabsConfig: null, fileOrders: {} }, seq = 0;
+  var st = { admin: false, preview: false, files: null, tabsConfig: null, fileOrders: {} }, seq = 0;
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var SPIN = '<div class="state"><div class="spin"></div></div>';
 
@@ -51,21 +51,7 @@
     return Promise.resolve(confirm(message));
   }
 
-  function canManageFiles(){
-    if(st.admin) return true;
-    if(st.teacher){
-      var subj=D.subject;
-      var list=st.teacherSubjects||[];
-      if(!list.length) return false;
-      if(list.includes('*') || list.includes('all')) return true;
-      if(list.includes(subj)) return true;
-    }
-    return false;
-  }
-  function canEditTabs(){ return st.admin; }
-  function canReorder(){ return st.admin; }
-  function canEditFileTitle(){ return st.admin; }
-
+  // ---------- تحميل إعدادات التبويبات + ترتيب الملفات ----------
   async function loadTabsConfig(){
     try{
       var r=await fetch('/api/tabs',{cache:'no-store'});
@@ -99,6 +85,7 @@
       else if(cfg.subjectTabs && cfg.subjectTabs[D.grade+'|'+D.term+'|'+D.subject]) tabsList=cfg.subjectTabs[D.grade+'|'+D.term+'|'+D.subject];
     }
     if(!tabsList){
+      // افتراضي حسب نوع المادة
       tabsList = Object.keys(DEFAULT_LABEL).map(function(k){ return {id:k, label:DEFAULT_LABEL[k]}; });
     }
     return tabsList;
@@ -110,24 +97,26 @@
     tabsList.forEach(function(t){
       var btn=document.createElement('button');
       btn.className='tab'; btn.setAttribute('data-tab', t.id); btn.textContent=t.label;
-      if(canEditTabs()){
+      if(st.admin){
         var editSpan=document.createElement('span');
-        editSpan.innerHTML=' <small style="opacity:.6">✏</small>';
+        editSpan.innerHTML=' <small style="opacity:.6">✏️</small>';
         editSpan.style.cursor='pointer';
         editSpan.onclick=function(e){ e.stopPropagation(); openTabModal(t.id); };
+        // لا نضيف زر حذف لكتاب الطالب لو هو الوحيد
       }
       tabsBar.appendChild(btn);
     });
-    if(canEditTabs()){
+    if(st.admin){
       var addBtn=document.createElement('button');
       addBtn.className='tab'; addBtn.style.border='2px dashed #c4cde0'; addBtn.textContent='+ تبويب جديد';
       addBtn.onclick=function(){ openTabModal(null); };
       tabsBar.appendChild(addBtn);
       var manageBtn=document.createElement('button');
-      manageBtn.className='btn btn-ghost btn-sm'; manageBtn.style.marginInlineStart='10px'; manageBtn.textContent='⚙ إدارة التبويبات';
+      manageBtn.className='btn btn-ghost btn-sm'; manageBtn.style.marginInlineStart='10px'; manageBtn.textContent='⚙️ إدارة التبويبات';
       manageBtn.onclick=function(){ openTabsManager(); };
       tabsBar.appendChild(manageBtn);
     }
+    // إعادة ربط
     Array.prototype.slice.call(document.querySelectorAll('.tab[data-tab]')).forEach(function(t){
       t.addEventListener('click', function(){ show(t.getAttribute('data-tab'), true); });
     });
@@ -137,21 +126,14 @@
     try {
       var r = await fetch('/api/session', { credentials: 'same-origin', cache: 'no-store' });
       if (!r.ok) throw 0;
-      var j=await r.json();
-      st.admin = !!j.admin;
-      st.teacher = !!j.teacher;
-      st.teacherSubjects = j.subjects||[];
-      st.teacherName = j.name||j.username||'';
+      st.admin = !!(await r.json()).admin;
     } catch (e) { if (local) { st.preview = true; st.admin = true; } }
     st.tabsConfig = await loadTabsConfig();
     st.fileOrders = await loadOrders();
+    // لو أدمن أضف شارة
     if(st.admin){
       var badge=document.createElement('div'); badge.className='admin-badge';
       badge.innerHTML='<span class="dot"></span> وضع الأدمن - سحب لإعادة الترتيب + تعديل التبويبات';
-      document.body.appendChild(badge);
-    } else if(st.teacher && canManageFiles()){
-      var badge=document.createElement('div'); badge.className='admin-badge'; badge.style.background='#0f766e';
-      badge.innerHTML='<span class="dot" style="background:#fde68a"></span> معلم: '+esc(st.teacherName)+' - إضافة وحذف ملفات فقط';
       document.body.appendChild(badge);
     }
     var tabsList = getTabsForCurrent(st.tabsConfig);
@@ -169,7 +151,7 @@
     if (my !== seq) return;
     if (ok === false) {
       var label = (getTabsForCurrent(st.tabsConfig).find(function(t){return t.id===tab;})||{}).label || tab;
-      panel.innerHTML = '<div class="state"><div class="ico">📂</div><h3>لم يُرفع ' + esc(label) + ' بعد</h3><p>سيظهر هنا فور إضافة الملف.</p>'+(canManageFiles()?'<button class="btn btn-navy btn-sm" style="margin-top:12px" onclick="document.querySelector(\'[data-act=add]\')?.click()">رفع كتاب</button>':'')+'</div>';
+      panel.innerHTML = '<div class="state"><div class="ico">📂</div><h3>لم يُرفع ' + esc(label) + ' بعد</h3><p>سيظهر هنا فور إضافة الملف.</p>'+(st.admin?'<button class="btn btn-navy btn-sm" style="margin-top:12px" onclick="document.querySelector(\'[data-act=add]\')?.click()">رفع كتاب</button>':'')+'</div>';
       return;
     }
     panel.innerHTML = '<div class="v-body"></div>';
@@ -203,14 +185,12 @@
 
   function card(f, i, kind) {
     var displayTitle = (f.title && f.title.trim().length > 1 && f.title.toLowerCase() !== 'undefined') ? f.title : (f.key ? f.key.split('/').pop().replace(/^\d+_/, '').replace(/\.pdf$/i,'').replace(/_/g,' ') : 'ملف بدون عنوان');
-    var dragHandle = canReorder() ? '<span class="drag-handle" draggable="true" title="اسحب لإعادة الترتيب" style="cursor:grab;padding:6px">☰</span>' : '';
-    var editBtn = canEditFileTitle() ? '<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-i="'+i+'">✏</button>' : '';
-    var delBtn = canManageFiles() ? '<button type="button" class="btn btn-danger btn-sm" data-act="del" data-i="' + i + '">حذف</button>' : '';
-    return '<article class="f-card '+(canReorder()?'draggable-card':'')+'" data-key="'+esc(f.key||f.url)+'" data-i="'+i+'" draggable="'+(canReorder()?'true':'false')+'">'+dragHandle+'<span class="f-ico">PDF</span><div class="f-info"><h4>' + esc(displayTitle) + '</h4>' +
+    var dragHandle = st.admin ? '<span class="drag-handle" draggable="true" title="اسحب لإعادة الترتيب" style="cursor:grab;padding:6px">☰</span>' : '';
+    return '<article class="f-card '+(st.admin?'draggable-card':'')+'" data-key="'+esc(f.key||f.url)+'" data-i="'+i+'" draggable="'+(st.admin?'true':'false')+'">'+dragHandle+'<span class="f-ico">PDF</span><div class="f-info"><h4>' + esc(displayTitle) + '</h4>' +
       '<p class="f-meta"><span>' + esc(fmtDate(f.uploadedAt)) + '</span><span dir="ltr">' + fmtSize(f.size) + '</span></p></div>' +
       '<div class="f-act"><button type="button" class="btn btn-navy btn-sm" data-act="view" data-i="' + i + '">عرض</button>' +
       '<button type="button" class="btn btn-gold btn-sm" data-act="dl" data-i="' + i + '">تحميل</button>' +
-      editBtn+delBtn + '</div></article>';
+      (st.admin ? '<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-i="'+i+'">✏️</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-i="' + i + '">حذف</button>' : '') + '</div></article>';
   }
 
   async function showList(kind, my) {
@@ -219,12 +199,13 @@
     var items = sortByOrder(rawItems, kind);
     if (my !== seq) return;
     var h = '';
-    if (canReorder()) h += '<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center"><span style="font-size:13px;color:var(--muted)">☰ اسحب البطاقات لإعادة الترتيب - الترتيب يحفظ تلقائيا</span><button type="button" class="btn btn-ghost btn-sm" id="btnResetOrder">إعادة للافتراضي</button></div>';
-    if (canManageFiles()) h += '<button type="button" class="add-card" data-act="add"><span class="plus">+</span>إضافة ' + esc((getTabsForCurrent(st.tabsConfig).find(function(t){return t.id===kind;})||{}).label || kind) + '</button>';
+    if (st.admin) h += '<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center"><span style="font-size:13px;color:var(--muted)">☰ اسحب البطاقات لإعادة الترتيب - الترتيب يحفظ تلقائيا</span><button type="button" class="btn btn-ghost btn-sm" id="btnResetOrder">إعادة للافتراضي</button></div>';
+    if (st.admin) h += '<button type="button" class="add-card" data-act="add"><span class="plus">+</span>إضافة ' + esc((getTabsForCurrent(st.tabsConfig).find(function(t){return t.id===kind;})||{}).label || kind) + '</button>';
     if (!items.length) h += '<div class="state"><div class="ico">📂</div><h3>لا يوجد ملفات</h3><p>لم يتم رفع ملفات في هذا القسم بعد.</p></div>';
     else items.forEach(function (f, i) { h += card(f, i, kind); });
     panel.innerHTML = '<div class="p-scroll"><div class="files" id="filesList">' + h + '</div></div>';
     var listEl = panel.querySelector('#filesList');
+    // events
     listEl.onclick = function (e) {
       var b = e.target.closest('[data-act]'); if (!b) return;
       var act = b.getAttribute('data-act'), idx = +b.getAttribute('data-i'), f = items[idx];
@@ -239,7 +220,8 @@
       var ok=await platformConfirm('إعادة الترتيب','هل تريد إعادة ترتيب الملفات للوضع الافتراضي (حسب تاريخ الرفع)؟');
       if(ok){ var k=D.grade+'|'+D.term+'|'+D.subject+'|'+kind; delete st.fileOrders[k]; await saveOrder(D.grade,D.term,D.subject,kind,[]); showList(kind,my); }
     };
-    if(canReorder()) enableDragDrop(listEl, kind, items);
+    // drag & drop
+    if(st.admin) enableDragDrop(listEl, kind, items);
   }
 
   function enableDragDrop(container, kind, items){
@@ -259,6 +241,7 @@
           var srcIdx = cards.indexOf(dragSrc), targetIdx = cards.indexOf(card);
           if(srcIdx<targetIdx) card.parentNode.insertBefore(dragSrc, card.nextSibling);
           else card.parentNode.insertBefore(dragSrc, card);
+          // save new order
           var newOrder = Array.prototype.slice.call(container.querySelectorAll('.draggable-card')).map(function(c){return c.getAttribute('data-key');});
           saveOrder(D.grade,D.term,D.subject,kind,newOrder).then(function(){ st.fileOrders[D.grade+'|'+D.term+'|'+D.subject+'|'+kind]=newOrder; toast('تم حفظ الترتيب ✓'); });
         }
@@ -274,7 +257,6 @@
     Viewer.mount(panel.querySelector('.v-body'), { url: f.url, name: f.title });
   }
   async function remove(f, kind) {
-    if(!canManageFiles()){ toast('ليس لديك صلاحية الحذف'); return; }
     var ok = await platformConfirm('حذف الملف', 'هل تريد حذف الملف «' + esc(f.title) + '» نهائياً؟ لا يمكن التراجع.', true);
     if (!ok) return;
     try {
@@ -338,7 +320,6 @@
     drop.ondrop = function (e) { e.preventDefault(); pick(e.dataTransfer.files[0]); };
     modal.onclick = function (e) { if (e.target === modal || e.target.closest('.m-x') || e.target.closest('[data-x]')) modal.classList.remove('open'); };
     go.onclick = async function () {
-      if(!canManageFiles()){ err('ليس لديك صلاحية الرفع'); return; }
       var title = name.value.trim();
       if (title.length < 2) return err('اكتب اسم الملف (حرفان على الأقل).');
       if (!file) return err('اختر ملف PDF أولاً.');
@@ -356,13 +337,9 @@
     };
     modal.reset = function () { pick(null); name.value = ''; err(''); bar.style.display = 'none'; input.value = ''; };
   }
-  function openUpload(kind) { 
-    if(!canManageFiles()){ toast('ليس لديك صلاحية الإضافة - المعلم يضيف في مادته فقط'); return; }
-    if (!modal) buildModal(); curKind = kind; modal.reset(); modal.classList.add('open'); modal.querySelector('#upName').focus(); 
-  }
+  function openUpload(kind) { if (!modal) buildModal(); curKind = kind; modal.reset(); modal.classList.add('open'); modal.querySelector('#upName').focus(); }
 
   function openEditFileModal(f, kind){
-    if(!canEditFileTitle()){ toast('تعديل اسم الملف للأدمن فقط'); return; }
     var m=document.createElement('div'); m.className='modal open';
     m.innerHTML='<div class="m-box"><button class="m-x">✕</button><h3>تعديل اسم الملف</h3><label class="field">الاسم<input id="editName" value="'+esc(f.title)+'"></label><p class="err" id="editErr"></p><div class="m-act"><button class="btn btn-navy" id="editSave">حفظ</button><button class="btn btn-ghost" id="editCancel">إلغاء</button></div></div>';
     document.body.appendChild(m);
@@ -371,14 +348,22 @@
     m.querySelector('#editSave').onclick=async function(){
       var newTitle=m.querySelector('#editName').value.trim();
       if(newTitle.length<2){ m.querySelector('#editErr').textContent='اكتب اسم صحيح'; return; }
+      // نحدث الاسم عبر إعادة حفظ metadata؟ حاليا نحدث في الذاكرة ونطلب من API تعديل (لو متوفر)
       try{
+        // محاولة تحديث عبر API جديد /api/update-file لو موجود، وإلا نحدث محليا
         var r=await fetch('/api/update-file',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({url:f.url, title:newTitle})});
-        if(!r.ok){ f.title=newTitle; }else{ var j=await r.json(); f.title=j.title||newTitle; }
+        if(!r.ok){
+          // fallback: حدث محلي فقط (سيظهر مؤقتا)
+          f.title=newTitle;
+        }else{
+          var j=await r.json(); f.title=j.title||newTitle;
+        }
         close(); toast('تم تعديل الاسم'); show(kind);
       }catch(e){ m.querySelector('#editErr').textContent='فشل التعديل'; }
     };
   }
 
+  // ---------- إدارة التبويبات ----------
   var tabModal=null;
   function ensureTabModal(){
     if(tabModal) return tabModal;
@@ -391,7 +376,6 @@
     return tabModal;
   }
   function openTabModal(existingId){
-    if(!canEditTabs()){ toast('إدارة التبويبات للأدمن فقط'); return; }
     var m=ensureTabModal();
     var isNew=!existingId;
     var tabsList=getTabsForCurrent(st.tabsConfig);
@@ -404,9 +388,10 @@
       var label=m.querySelector('#tabLabel').value.trim();
       if(!id||!label){ m.querySelector('#tabMErr').textContent='اكمل البيانات'; return; }
       if(!/^[a-z0-9_-]+$/.test(id)){ m.querySelector('#tabMErr').textContent='المعرف يجب أن يكون إنجليزي بدون مسافات'; return; }
+      // حدث التبويبات
       var cfg = st.tabsConfig || {subjectTabs:{}, gradeSubjectTabs:{}};
       cfg.subjectTabs = cfg.subjectTabs||{}; cfg.gradeSubjectTabs=cfg.gradeSubjectTabs||{};
-      var key = D.subject;
+      var key = D.subject; // نبسط: حسب المادة فقط
       var list = cfg.subjectTabs[key] || getTabsForCurrent(null);
       if(isNew){
         if(list.some(function(t){return t.id===id;})){ m.querySelector('#tabMErr').textContent='المعرف موجود مسبقا'; return; }
@@ -422,13 +407,12 @@
     };
   }
   function openTabsManager(){
-    if(!canEditTabs()){ toast('إدارة التبويبات للأدمن فقط'); return; }
     var m=ensureTabModal();
     var list=getTabsForCurrent(st.tabsConfig);
     var html='<p style="color:var(--muted);font-size:13px;margin-bottom:10px">اسحب لإعادة ترتيب التبويبات - التبويبات الأساسية (كتاب الطالب) لا يمكن حذفها</p>';
     html+='<div id="tabsManagerList">';
     list.forEach(function(t){
-      html+='<div class="f-card" data-tab-id="'+esc(t.id)+'" draggable="true" style="cursor:grab"><span>☰</span><b style="margin-inline-start:8px">'+esc(t.label)+'</b><small style="margin-inline-start:auto;color:var(--muted)">'+esc(t.id)+'</small><button class="btn btn-ghost btn-sm" data-edit-tab="'+esc(t.id)+'">✏</button><button class="btn btn-danger btn-sm" data-del-tab="'+esc(t.id)+'">🗑</button></div>';
+      html+='<div class="f-card" data-tab-id="'+esc(t.id)+'" draggable="true" style="cursor:grab"><span>☰</span><b style="margin-inline-start:8px">'+esc(t.label)+'</b><small style="margin-inline-start:auto;color:var(--muted)">'+esc(t.id)+'</small><button class="btn btn-ghost btn-sm" data-edit-tab="'+esc(t.id)+'">✏️</button><button class="btn btn-danger btn-sm" data-del-tab="'+esc(t.id)+'">🗑️</button></div>';
     });
     html+='</div>';
     m.querySelector('#tabMTitle').textContent='إدارة التبويبات - '+D.title;
@@ -436,6 +420,7 @@
     m.querySelector('#tabMSave').style.display='none';
     m.querySelector('#tabMCancel').textContent='إغلاق';
     m.classList.add('open');
+    // drag for tabs
     var container=m.querySelector('#tabsManagerList');
     var dragSrc=null;
     container.querySelectorAll('[data-tab-id]').forEach(function(card){
@@ -450,7 +435,7 @@
       b.onclick=async function(){
         var id=b.getAttribute('data-del-tab');
         if(['book','qbank'].includes(id)){ toast('لا يمكن حذف هذا التبويب'); return; }
-        var ok=await platformConfirm('حذف التبويب','هل تريد حذف تبويب "'+id+'"؟',true);
+        var ok=await platformConfirm('حذف التبويب','هل تريد حذف تبويب "'+id+'"؟ سيتم حذف كل ملفاته من العرض فقط (الملفات تبقى في R2).',true);
         if(!ok) return;
         var cfg=st.tabsConfig; var key=D.subject; var list=cfg.subjectTabs[key]||[]; cfg.subjectTabs[key]=list.filter(function(t){return t.id!==id;});
         var saved=await saveTabsConfig(cfg);

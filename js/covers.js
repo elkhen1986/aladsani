@@ -1,9 +1,6 @@
-/* صفحة الفصل - أدمن: تحكم كامل / معلم: يشوف مادته بس - يضيف ويمسح ملفات جوه المادة فقط */
+/* صفحة الفصل - تحكم كامل في المواد: إضافة/تعديل/حذف + صور الأغلفة - FIXED SAVE BUTTON + SCROLL */
 (function(){
   var isAdmin=false;
-  var isTeacher=false;
-  var teacherSubjects=[];
-  var teacherName='';
   var subjectsData=null;
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   var S = window.SITE||{};
@@ -16,30 +13,17 @@
     return Promise.resolve(confirm(message));
   }
 
-  async function checkSession(){
-    try{
-      var r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});
-      if(r.ok){
-        var j=await r.json();
-        isAdmin=!!j.admin;
-        isTeacher=!!j.teacher;
-        teacherSubjects=j.subjects||[];
-        teacherName=j.name||j.username||'';
-      }
-    }catch(e){}
+  async function checkAdmin(){
+    try{ var r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'}); if(r.ok){ var j=await r.json(); isAdmin=!!j.admin; } }catch(e){}
     if(isAdmin){
       var badge=document.createElement('div'); badge.className='admin-badge'; badge.innerHTML='<span class="dot"></span> وضع تعديل المواد - إضافة/حذف/صورة';
       document.body.appendChild(badge);
-      var wrap=document.createElement('div'); wrap.className='wrap'; wrap.style.padding='12px 24px'; wrap.innerHTML='<button class="btn btn-navy btn-sm" id="btnAddSubj">+ إضافة مادة جديدة</button><button class="btn btn-ghost btn-sm" id="btnManageSubj">⚙ إدارة المواد</button>';
+      var wrap=document.createElement('div'); wrap.className='wrap'; wrap.style.padding='12px 24px'; wrap.innerHTML='<button class="btn btn-navy btn-sm" id="btnAddSubj">+ إضافة مادة جديدة</button><button class="btn btn-ghost btn-sm" id="btnManageSubj">⚙️ إدارة المواد</button>';
       rootEl.parentElement.insertBefore(wrap, rootEl);
       setTimeout(function(){
         var a=document.getElementById('btnAddSubj'); if(a) a.onclick=function(){ openSubjModal(null); };
         var b=document.getElementById('btnManageSubj'); if(b) b.onclick=function(){ openManageModal(); };
       },100);
-    } else if(isTeacher){
-      var badge=document.createElement('div'); badge.className='admin-badge'; badge.style.background='#0f766e';
-      badge.innerHTML='<span class="dot" style="background:#fde68a"></span> معلم: '+esc(teacherName)+' - يمكنك إضافة وحذف ملفات داخل موادك فقط';
-      document.body.appendChild(badge);
     }
   }
 
@@ -47,6 +31,7 @@
     try{
       var r=await fetch('/api/admin-data?type=subjects',{cache:'no-store'});
       if(r.ok){ var j=await r.json(); subjectsData=j; return j; }
+      // fallback old
       var r2=await fetch('/api/subjects',{cache:'no-store'});
       if(r2.ok){ var j2=await r2.json(); subjectsData=j2; return j2; }
     }catch(e){}
@@ -65,46 +50,38 @@
     var j=await r.json(); return j.url;
   }
 
+  // FIXED: يدعم كل الصيغ /10/ /11-science/ وحتى لو المسار فيه term
   function getGradeFromPath(){
     var path=location.pathname;
     var m=path.match(/\/(10|11-science|11-arts|12-science|12-arts|11|12)(\/|$)/);
     if(m) return m[1];
+    // حاول يستخرج من جزء ثاني
     var parts=path.split('/').filter(Boolean);
     for(var i=0;i<parts.length;i++){
       if(/^(10|11-science|11-arts|12-science|12-arts)$/.test(parts[i])) return parts[i];
     }
     return null;
   }
-
-  function canEditSubject(){
-    // اسم المادة والغلاف = أدمن بس - المعلم يضيف ويمسح ملفات بس
-    return isAdmin;
-  }
-
   function renderCustomSubjects(){
-    if(!isAdmin &&!isTeacher && (!subjectsData ||!Object.keys(subjectsData.subjects||{}).length)) return;
+    if(!isAdmin && (!subjectsData || !Object.keys(subjectsData.subjects||{}).length)) return;
     var grade = getGradeFromPath();
     if(!grade) return;
     var gradeSubs = (subjectsData.gradeSubjects && subjectsData.gradeSubjects[grade]) || [];
     gradeSubs.forEach(function(subId){
-      // معلم: يشوف مادته بس
-      if(isTeacher && teacherSubjects.length &&!teacherSubjects.includes(subId) &&!teacherSubjects.includes('*') &&!teacherSubjects.includes('all')) return;
       var sub = (subjectsData.subjects||{})[subId];
       if(!sub) return;
       if(rootEl.querySelector('[data-s="'+subId+'"]')) return;
       var card=document.createElement('a');
       card.className='subj custom-subj'; card.href=subId+'/index.html'; card.setAttribute('data-s',subId);
       card.style.setProperty('--h', sub.hue||95);
-      var coverHtml = sub.cover? '<img src="'+esc(sub.cover)+'" style="width:100%;height:100%;object-fit:cover">' : '<span class="emo">'+esc(sub.icon||'📚')+'</span>';
-      var editHtml = canEditSubject()? '<div style="position:absolute;top:6px;left:6px;display:flex;gap:4px"><button class="btn btn-ghost btn-sm" data-edit-sub="'+esc(subId)+'">✏</button><button class="btn btn-danger btn-sm" data-del-sub="'+esc(subId)+'">🗑</button></div>' : '';
-      card.innerHTML='<div class="cover" aria-hidden="true">'+coverHtml+'</div><span class="badge">'+esc(grade)+'</span><h3>'+esc(sub.name)+'</h3>'+editHtml;
+      var coverHtml = sub.cover ? '<img src="'+esc(sub.cover)+'" style="width:100%;height:100%;object-fit:cover">' : '<span class="emo">'+esc(sub.icon||'📚')+'</span>';
+      card.innerHTML='<div class="cover" aria-hidden="true">'+coverHtml+'</div><span class="badge">'+esc(grade)+'</span><h3>'+esc(sub.name)+'</h3>'+(isAdmin?'<div style="position:absolute;top:6px;left:6px;display:flex;gap:4px"><button class="btn btn-ghost btn-sm" data-edit-sub="'+esc(subId)+'">✏️</button><button class="btn btn-danger btn-sm" data-del-sub="'+esc(subId)+'">🗑️</button></div>':'');
       rootEl.appendChild(card);
     });
-    if(canEditSubject()) bindCustomEvents();
+    if(isAdmin) bindCustomEvents();
   }
 
   function bindCustomEvents(){
-    if(!canEditSubject()) return;
     rootEl.querySelectorAll('[data-edit-sub]').forEach(function(b){
       b.onclick=function(e){ e.preventDefault(); e.stopPropagation(); openSubjModal(b.getAttribute('data-edit-sub')); };
     });
@@ -124,7 +101,7 @@
       var subId=card.getAttribute('data-s');
       if(!card.querySelector('.subj-admin')){
         var adminDiv=document.createElement('div'); adminDiv.className='subj-admin'; adminDiv.style.cssText='position:absolute;top:6px;left:6px;display:flex;gap:4px;z-index:2';
-        adminDiv.innerHTML='<button class="btn btn-ghost btn-sm" data-edit-orig="'+esc(subId)+'">✏</button>';
+        adminDiv.innerHTML='<button class="btn btn-ghost btn-sm" data-edit-orig="'+esc(subId)+'">✏️</button>';
         card.style.position='relative'; card.appendChild(adminDiv);
         adminDiv.querySelector('[data-edit-orig]').onclick=function(e){ e.preventDefault(); e.stopPropagation(); openSubjModal(subId,true); };
       }
@@ -135,6 +112,7 @@
   function ensureModal(){
     if(subjModal) return subjModal;
     subjModal=document.createElement('div'); subjModal.className='modal';
+    // FIXED: scroll + max-height + save button always visible
     subjModal.innerHTML='<div class="m-box" style="max-width:520px;max-height:90vh;display:flex;flex-direction:column"><button class="m-x">✕</button><h3 id="subjMTitle" style="flex:0 0 auto"></h3><div id="subjMBody" style="margin-top:14px;overflow-y:auto;flex:1 1 auto;padding-inline-end:4px"></div><p class="err" id="subjMErr" style="flex:0 0 auto"></p><div class="m-act" style="flex:0 0 auto;margin-top:12px"><button class="btn btn-navy" id="subjMSave">💾 حفظ</button><button class="btn btn-ghost" id="subjMCancel">إلغاء</button></div></div>';
     document.body.appendChild(subjModal);
     subjModal.querySelector('.m-x').onclick=function(){subjModal.classList.remove('open');};
@@ -144,14 +122,14 @@
   }
 
   function openSubjModal(subId, isOrig){
-    if(!canEditSubject()){ toast('إدارة المواد للأدمن فقط - المعلم يضيف ويمسح ملفات داخل المادة'); return; }
     var m=ensureModal();
     var isNew=!subId;
     var sub = isNew?{id:'', name:'', icon:'📚', cover:'', hue:200}: (subjectsData.subjects[subId]||{id:subId, name:'', icon:'📚', cover:'', hue:200});
-    if(isOrig &&!subjectsData.subjects[subId]){
+    if(isOrig && !subjectsData.subjects[subId]){
       var card=document.querySelector('[data-s="'+subId+'"] h3');
       if(card) sub.name=card.textContent.trim();
     }
+    // FIXED: أظهر زر الحفظ دائماً في وضع التعديل
     var saveBtn=m.querySelector('#subjMSave');
     saveBtn.style.display='inline-flex';
     saveBtn.textContent=isNew?'إضافة':'💾 حفظ';
@@ -195,24 +173,25 @@
   }
 
   function openManageModal(){
-    if(!canEditSubject()){ toast('إدارة المواد للأدمن فقط'); return; }
     var m=ensureModal();
     var grade=getGradeFromPath();
     if(!grade){ toast('لم أتمكن من تحديد الصف'); return; }
     var list = (subjectsData.gradeSubjects[grade]||[]).map(function(id){ return subjectsData.subjects[id]; }).filter(Boolean);
+    // لو فاضي، اعرض المواد الأصلية من الصفحة
     if(!list.length){
       var origCards=document.querySelectorAll('.subj[data-s]');
       origCards.forEach(function(card){
         var sid=card.getAttribute('data-s');
-        if(sid) list.push({id:sid, name: card.querySelector('h3')? card.querySelector('h3').textContent.trim() : sid});
+        if(sid) list.push({id:sid, name: card.querySelector('h3') ? card.querySelector('h3').textContent.trim() : sid});
       });
     }
     var html='<p style="color:var(--muted);font-size:13px">المواد في هذا الصف - اسحب ☰ لإعادة الترتيب</p><div id="manageList" style="max-height:50vh;overflow-y:auto">';
-    if(!list.length) html+='<p style="padding:20px;text-align:center;color:var(--muted)">لا توجد مواد مخصصة بعد</p>';
-    list.forEach(function(s){ html+='<div class="f-card" data-mid="'+esc(s.id)+'" draggable="true" style="cursor:grab"><span>☰</span><b style="margin-inline-start:8px">'+esc(s.name)+'</b><small style="margin-inline-start:auto">'+esc(s.id)+'</small><button class="btn btn-ghost btn-sm" data-medit="'+esc(s.id)+'">✏</button><button class="btn btn-danger btn-sm" data-mdel="'+esc(s.id)+'">🗑</button></div>'; });
+    if(!list.length) html+='<p style="padding:20px;text-align:center;color:var(--muted)">لا توجد مواد مخصصة بعد - المواد الأصلية من build.py</p>';
+    list.forEach(function(s){ html+='<div class="f-card" data-mid="'+esc(s.id)+'" draggable="true" style="cursor:grab"><span style="cursor:grab">☰</span><b style="margin-inline-start:8px">'+esc(s.name)+'</b><small style="margin-inline-start:auto">'+esc(s.id)+'</small><button class="btn btn-ghost btn-sm" data-medit="'+esc(s.id)+'">✏️</button><button class="btn btn-danger btn-sm" data-mdel="'+esc(s.id)+'">🗑️</button></div>'; });
     html+='</div>';
     m.querySelector('#subjMTitle').textContent='إدارة مواد '+grade;
     m.querySelector('#subjMBody').innerHTML=html;
+    // FIXED: في إدارة الترتيب نخفي الحفظ ونخلي إغلاق فقط
     m.querySelector('#subjMSave').style.display='none';
     m.querySelector('#subjMCancel').textContent='إغلاق';
     m.querySelector('#subjMErr').textContent='';
@@ -246,11 +225,11 @@
   }
 
   (async function(){
-    await checkSession();
+    await checkAdmin();
     subjectsData=await loadSubjects();
     if(subjectsData.covers){
       Object.keys(subjectsData.covers).forEach(function(id){
-        var card=document.querySelector('[data-s="'+id+'"].cover');
+        var card=document.querySelector('[data-s="'+id+'"] .cover');
         if(card && subjectsData.covers[id]){
           card.innerHTML='<img src="'+esc(subjectsData.covers[id])+'" style="width:100%;height:100%;object-fit:cover">';
         }
