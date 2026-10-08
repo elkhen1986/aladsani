@@ -1,4 +1,4 @@
-/* لوحة تحكم الأدمن - مع روابط إدارة المواد والتبويبات والترتيب */
+/* لوحة تحكم الأدمن - دخول فقط (بدون إدارة مشرفين) */
 (function(){
   var box = document.getElementById('adminBox');
   if(!box) return;
@@ -20,16 +20,14 @@
   }
 
   function renderDashboard(){
-    box.innerHTML='<h1>مرحبا بك مشرف العدساني</h1><p style="color:var(--muted)">تحكم كامل بدون تعديل باقي المنصة</p>'+
-      '<div style="display:grid;gap:12px;margin-top:20px;text-align:start">'+
-      '<a class="btn btn-navy" href="subjects/index.html">📚 إدارة المواد - إضافة/تعديل/حذف + صور الأغلفة</a>'+
-      '<a class="btn btn-gold" href="tabs/index.html">🗂️ إدارة التبويبات داخل كل مادة - إضافة/حذف/ترتيب بالسحب</a>'+
-      '<a class="btn btn-ghost" href="../staff/index.html">👨‍🏫 إدارة الهيئة التعليمية</a>'+
-      '<a class="btn btn-ghost" href="../index.html">🏠 الصفحة الرئيسية - إدارة المدراء والفائقين</a>'+
-      '<div style="margin-top:12px;padding:14px;background:#f1f5fb;border-radius:14px"><b>ملاحظات التحكم الجديد:</b><ul style="margin:8px 0 0 16px;list-style:disc;font-size:13px;color:var(--muted)"><li>ترتيب الملفات: ادخل أي مادة كأدمن واسحب البطاقات ☰ فوق بعض - يحفظ تلقائيا</li><li>المواد: من زر إدارة المواد تقدر تضيف مادة جديدة لكل الصفوف مع صورة غلاف</li><li>التبويبات: من داخل المادة كأدمن اضغط ⚙️ إدارة التبويبات أو من صفحة إدارة التبويبات العامة</li><li>كل التعديلات تحفظ في R2 بدون ما تغير باقي المنصة</li></ul></div>'+
-      '<button class="btn btn-danger" id="logout" style="margin-top:12px">تسجيل خروج</button>'+
+    box.innerHTML='<h1>مرحبا بك في وحدة التحكم</h1><p style="color:var(--muted);margin-top:6px">تم تسجيل الدخول بنجاح</p>'+
+      '<div style="margin-top:20px">'+
+      '<button class="btn btn-danger" id="logout">تسجيل خروج</button>'+
       '</div>';
-    document.getElementById('logout').onclick=async function(){ await fetch('/api/logout',{method:'POST',credentials:'same-origin'}); location.reload(); };
+    document.getElementById('logout').onclick=async function(){ 
+      await fetch('/api/logout',{method:'POST',credentials:'same-origin'}); 
+      location.reload(); 
+    };
   }
 
   (async function(){
